@@ -39,9 +39,9 @@ No systray library — direct `Shell_NotifyIconW` + `CreatePopupMenu` via `x/sys
 
 - [x] Phase 1 — Scaffold + Core Data Structures (completed 25-08-2026)
 - [x] Phase 2 — Win32 Foundation (completed 25-08-2026)
-- [ ] Phase 3 — Clipboard Monitoring
-- [ ] Phase 4 — Hotkeys + Overlay + Paste
-- [ ] Phase 5 — System Tray
+- [x] Phase 3 — Clipboard Monitoring (completed 26-08-2026)
+- [x] Phase 4 — Hotkeys + Overlay + Paste (completed 26-08-2026)
+- [x] Phase 5 — System Tray (completed 26-08-2026)
 - [ ] Phase 6 — Config Hot-Reload
 - [ ] Phase 7 — Polish + Release
 
@@ -61,7 +61,7 @@ Files: `internal/winapi/dll.go`, `internal/winapi/types.go`, `internal/winapi/co
 
 Verify: .exe starts silently, visible in Task Manager, second instance shows balloon and exits.
 
-Completed: raw Win32 bindings, message-only hidden window, event-backed command queue, `MsgWaitForMultipleObjects` pump, named mutex, and duplicate-instance notification balloon. Verified amd64 tests/vet/release build, 386 ABI tests, primary-process persistence, duplicate exit, and mutex release/relaunch.
+Completed: raw Win32 bindings, hidden top-level owner window, event-backed command queue, `MsgWaitForMultipleObjects` pump, named mutex, and duplicate-instance notification balloon. Verified amd64 tests/vet/release build, 386 ABI tests, primary-process persistence, duplicate exit, and mutex release/relaunch.
 
 ### Phase 3: Clipboard Monitoring
 `AddClipboardFormatListener`, read text with retry, dedup, persist, sensitive data skip.
@@ -70,6 +70,8 @@ Files: `internal/clipboard/monitor.go`, `internal/clipboard/read.go`, `internal/
 
 Verify: Copy text in Notepad, `history.json` updates. Dedup works. Password manager clips skipped. >64KB skipped.
 
+Completed: clipboard listener registration, retrying Unicode reads, privacy-marker filtering, size limits, stack deduplication, persistence, and reusable clipboard writes.
+
 ### Phase 4: Hotkeys + Overlay + Paste
 `Ctrl+Shift+V` opens overlay, arrows cycle, Enter pastes via `SendInput`, Esc cancels, Del deletes, Ctrl+P pins.
 
@@ -77,12 +79,16 @@ Files: `internal/hotkey/hotkey.go`, `internal/overlay/overlay.go`, `internal/ove
 
 Verify: Full cycling UX works. Paste lands in previously focused window. Multi-monitor overlay positioning correct.
 
+Completed: configurable global hotkey registration, keyboard cycling with optional wraparound, native GDI bezel positioned on the paste target's monitor, pin/delete persistence, timeout dismissal, clipboard replacement, focus restoration, and synthesized `Ctrl+V`.
+
 ### Phase 5: System Tray
 Custom .ico, context menu with recent clips, pins submenu, pause/clear/startup/about/quit.
 
-Files: `internal/tray/tray.go`, `internal/tray/menu.go`, `internal/tray/icon.go`, `internal/tray/registry.go`, `assets/icon.ico`
+Files: `internal/tray/tray.go`, `internal/tray/menu.go`, `internal/tray/icon.go`, `internal/tray/registry.go`, `assets/watergun_icon.ico`
 
 Verify: Right-click tray shows menu. Click clip pastes. Pause toggle works. Start with Windows writes registry.
+
+Completed: embedded custom tray and executable icons, dynamic recent clips and pins menus, click-to-paste, capture pause, unpinned clip clearing, per-user startup registration, About, and graceful Quit.
 
 ### Phase 6: Config Hot-Reload
 fsnotify watcher, debounced re-parse, apply changes (max_history trim, hotkey re-register, etc.).
@@ -101,5 +107,5 @@ Verify: Full integration test across all features. <15MB memory, zero CPU idle.
 
 ## Build
 ```
-go build -ldflags "-s -w -H windowsgui -X main.version=1.0.0" -o stendoclip.exe ./cmd/stendoclip
+make release
 ```

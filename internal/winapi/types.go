@@ -1,6 +1,10 @@
 package winapi
 
-import "golang.org/x/sys/windows"
+import (
+	"unsafe"
+
+	"golang.org/x/sys/windows"
+)
 
 type (
 	HWND      = windows.Handle
@@ -9,11 +13,21 @@ type (
 	HCURSOR   = windows.Handle
 	HBRUSH    = windows.Handle
 	HMENU     = windows.Handle
+	HDC       = windows.Handle
+	HGDIOBJ   = windows.Handle
+	HMONITOR  = windows.Handle
 )
 
 type Point struct {
 	X int32
 	Y int32
+}
+
+type Rect struct {
+	Left   int32
+	Top    int32
+	Right  int32
+	Bottom int32
 }
 
 type Msg struct {
@@ -56,4 +70,48 @@ type NotifyIconData struct {
 	InfoFlags      uint32
 	GUIDItem       windows.GUID
 	BalloonIcon    HICON
+}
+
+type PaintStruct struct {
+	DC        HDC
+	Erase     int32
+	Paint     Rect
+	Restore   int32
+	IncUpdate int32
+	Reserved  [32]byte
+}
+
+type MonitorInfo struct {
+	CbSize  uint32
+	Monitor Rect
+	Work    Rect
+	Flags   uint32
+}
+
+type KeyboardInput struct {
+	VK        uint16
+	Scan      uint16
+	Flags     uint32
+	Time      uint32
+	ExtraInfo uintptr
+}
+
+type MouseInput struct {
+	X         int32
+	Y         int32
+	MouseData uint32
+	Flags     uint32
+	Time      uint32
+	ExtraInfo uintptr
+}
+
+type Input struct {
+	Type uint32
+	Data MouseInput
+}
+
+func NewKeyboardInput(key uint16, flags uint32) Input {
+	input := Input{Type: InputKeyboard}
+	*(*KeyboardInput)(unsafe.Pointer(&input.Data)) = KeyboardInput{VK: key, Flags: flags}
+	return input
 }

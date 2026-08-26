@@ -135,6 +135,12 @@ func (s *ClippingStack) PinnedEntries() []Entry {
 	return append([]Entry(nil), s.pins...)
 }
 
+func (s *ClippingStack) HistoryEntries() []Entry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return append([]Entry(nil), s.history...)
+}
+
 func (s *ClippingStack) ClearHistory() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -162,6 +168,15 @@ func (s *ClippingStack) SetMax(n int) {
 		s.maxBytes = defaultMaxBytes
 	}
 	s.trimLocked()
+}
+
+func (s *ClippingStack) SetMaxBytes(n int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if n < 1 {
+		n = 1
+	}
+	s.maxBytes = n
 }
 
 func (s *ClippingStack) trimLocked() {

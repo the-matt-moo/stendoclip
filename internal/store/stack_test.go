@@ -80,6 +80,16 @@ func TestRejectsEntryOver64KB(t *testing.T) {
 	}
 }
 
+func TestEntrySnapshotsAreCopies(t *testing.T) {
+	s := New()
+	s.Push("history")
+	history := s.HistoryEntries()
+	history[0].Text = "changed"
+	if s.Get(0).Text != "history" {
+		t.Fatal("history snapshot mutated stack")
+	}
+}
+
 func TestClearHistoryPreservesPins(t *testing.T) {
 	s := New()
 	s.Push("history")

@@ -20,13 +20,16 @@ var (
 )
 
 type App struct {
-	mu           sync.Mutex
-	hwnd         winapi.HWND
-	instance     winapi.HINSTANCE
-	className    *uint16
-	commandEvent windows.Handle
-	commands     chan func()
-	closed       bool
+	mu               sync.Mutex
+	hwnd             winapi.HWND
+	instance         winapi.HINSTANCE
+	className        *uint16
+	commandEvent     windows.Handle
+	commands         chan func()
+	clipboardHandler func()
+	hotkeyHandler    func(uintptr)
+	messageHandler   func(uint32, uintptr, uintptr) bool
+	closed           bool
 }
 
 func New(version string) (*App, error) {
@@ -70,7 +73,7 @@ func New(version string) (*App, error) {
 	activeAppMu.Lock()
 	activeApp = a
 	activeAppMu.Unlock()
-	hwnd, err := winapi.CreateWindowEx(0, className, title, 0, 0, 0, 0, 0, winapi.HWNDMessage, 0, instance, nil)
+	hwnd, err := winapi.CreateWindowEx(0, className, title, 0, 0, 0, 0, 0, 0, 0, instance, nil)
 	if err != nil {
 		activeAppMu.Lock()
 		activeApp = nil
@@ -139,6 +142,24 @@ func (a *App) Window() winapi.HWND {
 	return a.hwnd
 }
 
+func (a *App) SetClipboardHandler(handler func()) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.clipboardHandler = handler
+}
+
+func (a *App) SetHotkeyHandler(handler func(uintptr)) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.hotkeyHandler = handler
+}
+
+func (a *App) SetMessageHandler(handler func(uint32, uintptr, uintptr) bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.messageHandler = handler
+}
+
 func (a *App) Close() error {
 	a.mu.Lock()
 	if a.closed {
@@ -185,6 +206,32 @@ func (a *App) drainCommands() {
 
 func windowProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 	switch message {
+	case winapi.WMClipboardUpdate:
+		activeAppMu.Lock()
+		a := activeApp
+		activeAppMu.Unlock()
+		if a != nil {
+			a.mu.Lock()
+			handler := a.clipboardHandler
+			a.mu.Unlock()
+			if handler != nil {
+				handler()
+			}
+		}
+		return 0
+	case winapi.WMHotkey:
+		activeAppMu.Lock()
+		a := activeApp
+		activeAppMu.Unlock()
+		if a != nil {
+			a.mu.Lock()
+			handler := a.hotkeyHandler
+			a.mu.Unlock()
+			if handler != nil {
+				handler(wParam)
+			}
+		}
+		return 0
 	case winapi.WMClose:
 		_ = winapi.DestroyWindow(winapi.HWND(hwnd))
 		return 0
@@ -201,6 +248,17 @@ func windowProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 		winapi.PostQuitMessage(0)
 		return 0
 	default:
+		activeAppMu.Lock()
+		a := activeApp
+		activeAppMu.Unlock()
+		if a != nil {
+			a.mu.Lock()
+			handler := a.messageHandler
+			a.mu.Unlock()
+			if handler != nil && handler(message, wParam, lParam) {
+				return 0
+			}
+		}
 		return winapi.DefWindowProc(winapi.HWND(hwnd), message, wParam, lParam)
 	}
 }

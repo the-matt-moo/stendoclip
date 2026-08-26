@@ -4,6 +4,8 @@ import (
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/mooreceipts/stendoclip/internal/winapi"
 )
 
 func TestCommandWakesMessagePump(t *testing.T) {
@@ -15,6 +17,9 @@ func TestCommandWakesMessagePump(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer a.Close()
+	if winapi.IsWindowVisible(a.Window()) {
+		t.Fatal("owner window is visible")
+	}
 
 	posted := make(chan error, 1)
 	go func() {

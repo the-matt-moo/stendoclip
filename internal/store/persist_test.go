@@ -24,6 +24,26 @@ func TestPersistenceRoundTrip(t *testing.T) {
 	}
 }
 
+func TestLoadPreservesConfiguredHistory(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.json")
+	s := New()
+	s.SetMax(100)
+	for i := 0; i < 60; i++ {
+		s.Push(string(rune('A' + i)))
+	}
+	if err := s.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got.SetMax(100)
+	if got.Len() != 60 {
+		t.Fatalf("loaded %d clips, want 60", got.Len())
+	}
+}
+
 func TestDedupAfterPersistence(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "history.json")
 	s := New()

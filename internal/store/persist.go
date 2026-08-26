@@ -58,6 +58,5 @@ func Load(path string) (*ClippingStack, error) {
 	for i := range stack.pins {
 		stack.pins[i].Pinned = true
 	}
-	stack.trimLocked()
 	return stack, nil
 }

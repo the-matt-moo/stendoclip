@@ -1,6 +1,25 @@
 # stendoclip
 
-stendoclip is a lightweight Windows 11 clipboard manager inspired by Jumpcut. Phase 1 provides the clip stack, pinning, JSON persistence, configuration, and rotating file logging.
+![Stendoclip social card](assets/social_card.jpg)
+
+stendoclip 0.5.0 is a lightweight Windows 11 clipboard manager inspired by Jumpcut. It captures plain-text clipboard changes and provides a keyboard-driven bezel plus system-tray controls for cycling, pinning, deleting, and pasting clips.
+
+## Controls
+
+| Key | Action |
+|---|---|
+| `Ctrl+Shift+V` | Open the bezel; press again to cycle forward |
+| Arrow keys | Cycle clips |
+| `Enter` | Paste the selected clip |
+| `Esc` | Cancel |
+| `Delete` | Delete the selected clip |
+| `Ctrl+P` | Pin or unpin the selected clip |
+
+The open and pin shortcuts, cycling wraparound, paste delay, and bezel timeout are configurable.
+
+## System tray
+
+Right-click the watergun tray icon to paste recent clips or pins, pause capture, clear unpinned clips, toggle Start with Windows, view version information, or quit. The icon is embedded in both the tray and compiled executable from `assets/watergun_icon.ico`, so no external asset file is required at runtime.
 
 ## Build
 
@@ -13,7 +32,7 @@ make run
 make release
 ```
 
-`make release` produces a GUI-subsystem `stendoclip.exe`. Version metadata comes from `git describe` and is embedded with `-ldflags`.
+`make release` produces a GUI-subsystem `stendoclip.exe`. Version metadata comes from `VERSION` and is embedded with `-ldflags`. Run `make resources` only after replacing the `.ico`; it regenerates committed 386 and amd64 Windows resources.
 
 ## Configuration
 
@@ -31,6 +50,8 @@ Configuration is JSON. Unspecified fields retain these defaults:
 | `hotkey_pin` | `Ctrl+P` | Pin selected entry |
 | `history_path` | `""` | Custom clipboard-history file path |
 
+Configuration lives at `%AppData%\\Stendoclip\\config.json`. History defaults to `%AppData%\\Stendoclip\\history.json`; relative `history_path` values resolve from that directory.
+
 Example:
 
 ```json
@@ -40,6 +61,8 @@ Example:
   "history_path": "C:\\Users\\me\\Documents\\stendoclip-history.json"
 }
 ```
+
+Stendoclip captures `CF_UNICODETEXT` only. It ignores clips larger than `max_entry_bytes` and clips marked with Windows or KeePass clipboard privacy formats.
 
 ## License
 
