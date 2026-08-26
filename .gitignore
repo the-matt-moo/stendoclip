@@ -1,0 +1,5 @@
+stendoclip.exe
+*.log
+vendor/
+.idea/
+.vscode/
