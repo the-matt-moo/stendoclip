@@ -143,32 +143,41 @@ When `keys` is present, the legacy `hotkey_open` and `hotkey_pin` fields are ign
 
 ## FAQ
 
-**Q: What happens when I copy an image or file?**
-A: Stendoclip ignores non-text content silently. Only plain Unicode text (`CF_UNICODETEXT`) is captured. Images, files, formatted text, and other formats are discarded without logging (unless `debug_log: true`).
+**What happens when I copy an image or file?**
 
-**Q: Where are my clips stored?**
-A: In `%AppData%\Stendoclip\history.json` by default. Pinned clips and unpinned clips coexist in the same file and survive restarts. Use `history_path` in config to move it elsewhere.
+- Stendoclip ignores non-text content silently. Only plain Unicode text (`CF_UNICODETEXT`) is captured. Images, files, formatted text, and other formats are discarded without logging (unless `debug_log: true`).
 
-**Q: Can I sync clips between computers?**
-A: Not built-in. You can manually copy `history.json` between machines, or use `history_path` to point to a cloud-synced folder (OneDrive, Dropbox, etc.), but stendoclip doesn't auto-sync.
+**Where are my clips stored?**
 
-**Q: Is my clipboard data private?**
-A: Stendoclip stores clips as plaintext JSON locally. Only your machine can read it. Sensitive data (Windows privacy-marked content, KeePass) is detected and not stored. If you don't want a clip captured, manually clear it or pause capture via the tray menu.
+- In `%AppData%\Stendoclip\history.json` by default. Pinned clips and unpinned clips coexist in the same file and survive restarts. Use `history_path` in config to move it elsewhere.
 
-**Q: How do I uninstall?**
-A: Delete `stendoclip.exe`. Optionally remove the config and history from `%AppData%\Stendoclip\`. To disable autostart, toggle "Start with Windows" in the tray menu or manually delete the registry entry at `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\Stendoclip`.
+**Can I sync clips between computers?**
 
-**Q: Can I backup my clips?**
-A: Yes. `history.json` is a valid JSON file. Copy it anywhere or add it to version control. To restore, replace the file in `%AppData%\Stendoclip\` and restart stendoclip.
+- Not built-in. You can manually copy `history.json` between machines, or use `history_path` to point to a cloud-synced folder (OneDrive, Dropbox, etc.), but stendoclip doesn't auto-sync.
 
-**Q: What if my config is invalid?**
-A: Stendoclip logs the error and ignores the bad config on startup/reload. It falls back to defaults and uses the last known good config in memory. Check the log at `%AppData%\Stendoclip\stendoclip.log` for details.
+**Is my clipboard data private?**
 
-**Q: Can I customize every hotkey?**
-A: Yes. Use the `keys` object in `config.json` to override any bezel action (open, previous, next, paste, cancel, delete, pin). Each accepts an array of key specs for multi-binding.
+- Stendoclip stores clips as plaintext JSON locally. Only your machine can read it. Sensitive data (Windows privacy-marked content, KeePass) is detected and not stored. If you don't want a clip captured, manually clear it or pause capture via the tray menu.
 
-**Q: Does stendoclip consume a lot of memory?**
-A: No. Runtime is ~15MB for a 50-clip history. Memory grows linearly with `max_history` and `max_entry_bytes`; at defaults, a 500-clip stack is still <50MB.
+**How do I uninstall?**
+
+- Delete `stendoclip.exe`. Optionally remove the config and history from `%AppData%\Stendoclip\`. To disable autostart, toggle "Start with Windows" in the tray menu or manually delete the registry entry at `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\Stendoclip`.
+
+**Can I backup my clips?**
+
+- Yes. `history.json` is a valid JSON file. Copy it anywhere or add it to version control. To restore, replace the file in `%AppData%\Stendoclip\` and restart stendoclip.
+
+**What if my config is invalid?**
+
+- Stendoclip logs the error and ignores the bad config on startup/reload. It falls back to defaults and uses the last known good config in memory. Check the log at `%AppData%\Stendoclip\stendoclip.log` for details.
+
+**Can I customize every hotkey?**
+
+- Yes. Use the `keys` object in `config.json` to override any bezel action (open, previous, next, paste, cancel, delete, pin). Each accepts an array of key specs for multi-binding.
+
+**Does stendoclip consume a lot of memory?**
+
+- No. Runtime is ~15MB for a 50-clip history. Memory grows linearly with `max_history` and `max_entry_bytes`; at defaults, a 500-clip stack is still <50MB.
 
 ## License
 
