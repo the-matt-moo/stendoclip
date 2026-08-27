@@ -108,6 +108,31 @@ func LoadConfig(path string) (Config, error) {
 	return cfg, nil
 }
 
+func SaveConfig(path string, cfg Config) error {
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(data, '\n'), 0o600)
+}
+
+func UpdateFontSize(path string, newSize int) error {
+	cfg, err := LoadConfig(path)
+	if errors.Is(err, os.ErrNotExist) {
+		cfg = Defaults()
+	} else if err != nil {
+		return err
+	}
+	if newSize < 12 {
+		newSize = 12
+	}
+	if newSize > 48 {
+		newSize = 48
+	}
+	cfg.BezelFontSize = newSize
+	return SaveConfig(path, cfg)
+}
+
 func (c Config) Validate() error {
 	var errs []error
 	if c.MaxHistory < 1 {

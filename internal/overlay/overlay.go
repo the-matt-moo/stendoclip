@@ -44,6 +44,7 @@ type Controller struct {
 	bindings    KeyBindings
 	fontSize    int32
 	font        winapi.HGDIOBJ
+	footerFont  winapi.HGDIOBJ
 	paste       func(winapi.HWND, string) error
 	onError     func(error)
 	target      winapi.HWND
@@ -109,13 +110,14 @@ func New(stack *store.ClippingStack, historyPath string, bindings KeyBindings, t
 	if err != nil {
 		return nil, err
 	}
-	if fontSize < 8 {
+	if fontSize < 12 {
 		fontSize = 18
 	}
 	font, _ := winapi.CreateFont(fontSize)
+	footerFont, _ := winapi.CreateFont(12)
 	controller := &Controller{
 		instance: instance, className: className, brush: brush, stack: stack, historyPath: historyPath,
-		timeout: timeout, wraparound: wraparound, bindings: bindings, fontSize: fontSize, font: font,
+		timeout: timeout, wraparound: wraparound, bindings: bindings, fontSize: fontSize, font: font, footerFont: footerFont,
 		paste: paste, onError: onError,
 	}
 	class := winapi.WndClassEx{WndProc: windowProcCallback, Instance: instance, ClassName: className}
@@ -158,7 +160,7 @@ func (c *Controller) Open() error {
 	}
 	c.target = winapi.GetForegroundWindow()
 	c.index = 0
-	x, y, width, height, err := position(c.target)
+	x, y, width, height, err := position(c.target, c.fontSize)
 	if err != nil {
 		return err
 	}
@@ -196,6 +198,10 @@ func (c *Controller) Close() error {
 		winapi.DeleteObject(c.font)
 		c.font = 0
 	}
+	if c.footerFont != 0 {
+		winapi.DeleteObject(c.footerFont)
+		c.footerFont = 0
+	}
 	activeMu.Lock()
 	if active == c {
 		active = nil
@@ -228,6 +234,14 @@ func (c *Controller) SetFontSize(size int32) {
 		winapi.DeleteObject(c.font)
 	}
 	c.font, _ = winapi.CreateFont(size)
+	if c.visible {
+		x, y, w, h, err := position(c.target, c.fontSize)
+		if err == nil {
+			_ = winapi.SetWindowPos(c.hwnd, winapi.HWNDTopmost, x, y, w, h, winapi.SWPNoActivate)
+		}
+		winapi.InvalidateRect(c.hwnd)
+		c.report(c.resetTimer())
+	}
 }
 
 func (c *Controller) handleKey(key uint32, repeated bool) {

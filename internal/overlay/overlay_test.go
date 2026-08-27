@@ -27,14 +27,22 @@ func TestParseBindingsRejectsInvalid(t *testing.T) {
 }
 
 func TestCenteredOnNegativeMonitor(t *testing.T) {
-	x, y, width, height := centered(winapi.Rect{Left: -1920, Top: -200, Right: 0, Bottom: 880})
+	// Default font size 18 → height 190.
+	x, y, width, height := centered(winapi.Rect{Left: -1920, Top: -200, Right: 0, Bottom: 880}, 18)
 	if x != -1280 || y != 245 || width != 640 || height != 190 {
 		t.Fatalf("position = %d,%d %dx%d", x, y, width, height)
 	}
 
-	x, y, width, height = centered(winapi.Rect{Left: 0, Top: 0, Right: 500, Bottom: 180})
-	if x != 20 || y != 20 || width != 460 || height != 140 {
-		t.Fatalf("small work area position = %d,%d %dx%d", x, y, width, height)
+	// Small work area capped at 90%.
+	x, y, width, height = centered(winapi.Rect{Left: 0, Top: 0, Right: 500, Bottom: 180}, 18)
+	if width != 450 || height != 162 {
+		t.Fatalf("small work area = %dx%d", width, height)
+	}
+
+	// Larger font scales height.
+	x, y, width, height = centered(winapi.Rect{Left: 0, Top: 0, Right: 1920, Bottom: 1080}, 36)
+	if height != 380 {
+		t.Fatalf("scaled height = %d, want 380", height)
 	}
 }
 

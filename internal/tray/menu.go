@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mooreceipts/stendoclip/internal/config"
 	"github.com/mooreceipts/stendoclip/internal/export"
 	"github.com/mooreceipts/stendoclip/internal/store"
 	"github.com/mooreceipts/stendoclip/internal/winapi"
@@ -17,6 +18,8 @@ const (
 	startupID  = 3003
 	aboutID    = 3004
 	exportID   = 3005
+	incFontID  = 3007
+	decFontID  = 3008
 	quitID     = 3006
 	menuLimit  = 10
 )
@@ -114,6 +117,15 @@ func (t *Tray) buildMenu() (state menuState, err error) {
 	if err = winapi.AppendMenu(state.menu, winapi.MFSeparator, 0, ""); err != nil {
 		return state, err
 	}
+	if err = winapi.AppendMenu(state.menu, winapi.MFString, incFontID, "Increase font size"); err != nil {
+		return state, err
+	}
+	if err = winapi.AppendMenu(state.menu, winapi.MFString, decFontID, "Decrease font size"); err != nil {
+		return state, err
+	}
+	if err = winapi.AppendMenu(state.menu, winapi.MFSeparator, 0, ""); err != nil {
+		return state, err
+	}
 	if err = winapi.AppendMenu(state.menu, winapi.MFString, exportID, "Export history to Markdown..."); err != nil {
 		return state, err
 	}
@@ -161,6 +173,10 @@ func (t *Tray) runCommand(command uint32, state menuState, target winapi.HWND) {
 			path = selectedPath
 		}
 		t.report(export.ToMarkdown(t.stack, path))
+	case command == incFontID:
+		t.adjustFontSize(2)
+	case command == decFontID:
+		t.adjustFontSize(-2)
 	case command == aboutID:
 		showAbout(t.instance, t.aboutImage, t.version)
 	case command == quitID:
@@ -168,6 +184,24 @@ func (t *Tray) runCommand(command uint32, state menuState, target winapi.HWND) {
 			t.report(t.onQuit())
 		}
 	}
+}
+
+func (t *Tray) adjustFontSize(delta int) {
+	newSize := t.currentFontSize + delta
+	if newSize < 12 {
+		newSize = 12
+	}
+	if newSize > 96 {
+		newSize = 96
+	}
+	if newSize == t.currentFontSize {
+		return
+	}
+	t.currentFontSize = newSize
+	if t.onFontSizeChange != nil {
+		t.onFontSizeChange(newSize)
+	}
+	t.report(config.UpdateFontSize(t.configPath, newSize))
 }
 
 func clipLabel(text string) string {

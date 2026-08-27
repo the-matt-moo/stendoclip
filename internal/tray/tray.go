@@ -24,6 +24,9 @@ type Tray struct {
 	stack              *store.ClippingStack
 	historyPath        string
 	markdownExportPath string
+	configPath         string
+	currentFontSize    int
+	onFontSizeChange   func(int)
 	executable         string
 	version            string
 	paste              func(winapi.HWND, string) error
@@ -35,7 +38,7 @@ type Tray struct {
 	taskbarMessage     uint32
 }
 
-func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingStack, historyPath, markdownExportPath, executable, version string, paste func(winapi.HWND, string) error, onPause func(bool), onQuit func() error, onError func(error)) (*Tray, error) {
+func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingStack, historyPath, markdownExportPath, configPath, executable, version string, currentFontSize int, paste func(winapi.HWND, string) error, onPause func(bool), onFontSizeChange func(int), onQuit func() error, onError func(error)) (*Tray, error) {
 	instance, err := winapi.GetModuleHandle()
 	if err != nil {
 		return nil, err
@@ -51,7 +54,7 @@ func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingSta
 	}
 	tray := &Tray{
 		hwnd: hwnd, instance: instance, icon: icon, aboutImage: aboutImage,
-		stack: stack, historyPath: historyPath, markdownExportPath: markdownExportPath, executable: executable, version: version,
+		stack: stack, historyPath: historyPath, markdownExportPath: markdownExportPath, configPath: configPath, currentFontSize: currentFontSize, onFontSizeChange: onFontSizeChange, executable: executable, version: version,
 		paste: paste, onPause: onPause, onQuit: onQuit, onError: onError, taskbarMessage: taskbarMessage,
 	}
 	if err := tray.addIcon(); err != nil {
@@ -110,6 +113,8 @@ func (t *Tray) addIcon() error {
 
 func (t *Tray) SetMarkdownExportPath(path string) { t.markdownExportPath = path }
 
+func (t *Tray) SetFontSize(size int) { t.currentFontSize = size }
+
 func (t *Tray) Close() error {
 	var result error
 	if t.added {
@@ -126,12 +131,6 @@ func (t *Tray) Close() error {
 
 func (t *Tray) showMenu(point *winapi.Point) {
 	target := winapi.GetForegroundWindow()
-	state, err := t.buildMenu()
-	if err != nil {
-		t.report(err)
-		return
-	}
-	defer winapi.DestroyMenu(state.menu)
 	if point == nil {
 		cursor, err := winapi.GetCursorPos()
 		if err != nil {
@@ -140,16 +139,34 @@ func (t *Tray) showMenu(point *winapi.Point) {
 		}
 		point = &cursor
 	}
-	t.report(winapi.SetForegroundWindow(t.hwnd))
-	command := winapi.TrackPopupMenu(
-		state.menu, winapi.TPMRightButton|winapi.TPMNonotify|winapi.TPMReturnCmd, point.X, point.Y, t.hwnd,
-	)
+	state, err := t.buildMenu()
+	if err != nil {
+		t.report(err)
+		return
+	}
+	defer winapi.DestroyMenu(state.menu)
+	for {
+		t.report(winapi.SetForegroundWindow(t.hwnd))
+		command := winapi.TrackPopupMenu(
+			state.menu, winapi.TPMRightButton|winapi.TPMNonotify|winapi.TPMReturnCmd, point.X, point.Y, t.hwnd,
+		)
+		if command == 0 {
+			break
+		}
+		if command == incFontID || command == decFontID {
+			t.runCommand(command, state, target)
+			continue
+		}
+		winapi.PostMessage(t.hwnd, winapi.WMNull, 0, 0)
+		if target != 0 {
+			t.report(winapi.SetForegroundWindow(target))
+		}
+		t.runCommand(command, state, target)
+		return
+	}
 	winapi.PostMessage(t.hwnd, winapi.WMNull, 0, 0)
 	if target != 0 {
 		t.report(winapi.SetForegroundWindow(target))
-	}
-	if command != 0 {
-		t.runCommand(command, state, target)
 	}
 }
 

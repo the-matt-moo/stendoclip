@@ -19,7 +19,20 @@ All keys are configurable (see [Key bindings](#key-bindings) below).
 
 ## System tray
 
-Right-click the watergun tray icon to paste recent clips or pins, pause capture, clear unpinned clips, toggle Start with Windows, view version information, or quit. The icon is embedded in both the tray and compiled executable from `assets/watergun_icon.ico`, so no external asset file is required at runtime.
+Right-click the watergun tray icon to:
+- Paste recent clips or pins
+- Pause capture
+- Clear unpinned clips
+- **Increase or decrease font size** (persisted to `config.json`)
+- Toggle Start with Windows
+- View version information
+- Quit
+
+The icon is embedded in both the tray and compiled executable from `assets/watergun_icon.ico`, so no external asset file is required at runtime.
+
+### Font size controls
+
+Use **Increase font size** and **Decrease font size** in the tray menu to dynamically adjust the bezel overlay text size. Each click adjusts by ±2 pixels (minimum 12, maximum 48). Changes persist to `config.json` and apply instantly via hot-reload.
 
 ### Export history to markdown
 
@@ -68,7 +81,7 @@ Configuration lives at `%AppData%\\Stendoclip\\config.json`.
 | `timeout_secs` | yes | Bezel auto-close timeout |
 | `wraparound` | yes | Wrap clip navigation |
 | `debug_log` | yes | Extra logging |
-| `bezel_font_size` | yes | Bezel text size in pixels, min 8 |
+| `bezel_font_size` | yes | Bezel text size in pixels, range 12–48 |
 | `keys` | yes | Full key-binding override for bezel actions |
 | `hotkey_open` / `hotkey_pin` | yes | Legacy single-hotkey fallback only |
 | `history_path` | restart | Move persisted history/pins file |

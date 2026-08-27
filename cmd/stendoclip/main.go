@@ -165,10 +165,14 @@ func main() {
 	}
 
 	systemTray, err := tray.New(
-		application.Window(), assets.WatergunIcon, assets.CowImage, clips, historyPath, markdownExportPath, executable, version, paster.Execute,
+		application.Window(), assets.WatergunIcon, assets.CowImage, clips, historyPath, markdownExportPath, configPath, executable, version, settings.BezelFontSize, paster.Execute,
 		func(value bool) {
 			paused = value
 			log.Info("capture paused: %v", value)
+		},
+		func(size int) {
+			bezel.SetFontSize(int32(size))
+			log.Info("font size changed to %d", size)
 		},
 		application.Quit,
 		func(err error) { log.Error("tray failed: %v", err) },
@@ -203,6 +207,7 @@ func main() {
 			bezel.SetTimeout(time.Duration(cfg.TimeoutSecs) * time.Second)
 			bezel.SetWraparound(cfg.Wraparound)
 			bezel.SetFontSize(int32(cfg.BezelFontSize))
+			systemTray.SetFontSize(cfg.BezelFontSize)
 
 			// Key bindings.
 			_, newBindings, err := resolveKeys(cfg)
