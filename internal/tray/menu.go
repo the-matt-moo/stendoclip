@@ -143,7 +143,7 @@ func (t *Tray) runCommand(command uint32, state menuState, target winapi.HWND) {
 		}
 		t.report(err)
 	case command == aboutID:
-		winapi.MessageBoxInfo("Stendoclip", "Stendoclip "+t.version+"\n\nKeyboard-first clipboard manager for Windows.")
+		showAbout(t.instance, t.aboutImage, t.version)
 	case command == quitID:
 		if t.onQuit != nil {
 			t.report(t.onQuit())

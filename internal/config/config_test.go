@@ -10,7 +10,8 @@ func TestDefaults(t *testing.T) {
 	got := Defaults()
 	if got.MaxHistory != 50 || got.MaxEntryBytes != 65536 || got.PasteDelayMs != 200 ||
 		got.TimeoutSecs != 5 || !got.Wraparound || got.DebugLog ||
-		got.HotkeyOpen != "Ctrl+Shift+V" || got.HotkeyPin != "Ctrl+P" || got.HistoryPath != "" {
+		got.HotkeyOpen != "Ctrl+Shift+V" || got.HotkeyPin != "Ctrl+P" || got.HistoryPath != "" ||
+		got.BezelFontSize != 18 {
 		t.Fatalf("unexpected defaults: %#v", got)
 	}
 	if err := got.Validate(); err != nil {
@@ -29,6 +30,47 @@ func TestPartialJSONMergesDefaults(t *testing.T) {
 	}
 	if got.MaxHistory != 75 || !got.DebugLog || got.MaxEntryBytes != 65536 || got.HotkeyOpen != "Ctrl+Shift+V" || !got.Wraparound {
 		t.Fatalf("partial merge = %#v", got)
+	}
+}
+
+func TestResolvedKeysUsesDefaultsWhenNoKeysBlock(t *testing.T) {
+	cfg := Defaults()
+	keys := cfg.ResolvedKeys()
+	if keys.Open[0] != "Ctrl+Shift+V" || keys.Pin[0] != "Ctrl+P" || len(keys.Previous) != 2 {
+		t.Fatalf("resolved keys = %#v", keys)
+	}
+}
+
+func TestResolvedKeysHonoursLegacyOverride(t *testing.T) {
+	cfg := Defaults()
+	cfg.HotkeyOpen = "Alt+V"
+	keys := cfg.ResolvedKeys()
+	if keys.Open[0] != "Alt+V" {
+		t.Fatalf("open = %q", keys.Open[0])
+	}
+}
+
+func TestResolvedKeysBlockOverridesDefaults(t *testing.T) {
+	cfg := Defaults()
+	cfg.Keys = &Keys{Cancel: []string{"Q"}}
+	keys := cfg.ResolvedKeys()
+	if keys.Cancel[0] != "Q" || keys.Open[0] != "Ctrl+Shift+V" {
+		t.Fatalf("resolved = %#v", keys)
+	}
+}
+
+func TestKeysBlockFromJSON(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(path, []byte(`{"keys":{"cancel":["Q"],"previous":["K"]}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := cfg.ResolvedKeys()
+	if keys.Cancel[0] != "Q" || keys.Previous[0] != "K" || keys.Open[0] != "Ctrl+Shift+V" {
+		t.Fatalf("resolved = %#v", keys)
 	}
 }
 

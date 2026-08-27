@@ -23,6 +23,14 @@ var version = "dev"
 
 const openHotkeyID = 1
 
+func resolveKeys(settings config.Config) (config.Keys, overlay.KeyBindings, error) {
+	keys := settings.ResolvedKeys()
+	bindings, err := overlay.ParseBindings(
+		keys.Previous, keys.Next, keys.Paste, keys.Cancel, keys.Delete, keys.Pin,
+	)
+	return keys, bindings, err
+}
+
 func main() {
 	unlock := app.LockMainThread()
 	defer unlock()
@@ -46,7 +54,8 @@ func main() {
 		return
 	}
 	dataDir = filepath.Join(dataDir, "Stendoclip")
-	settings, err := config.LoadConfig(filepath.Join(dataDir, "config.json"))
+	configPath := filepath.Join(dataDir, "config.json")
+	settings, err := config.LoadConfig(configPath)
 	if errors.Is(err, os.ErrNotExist) {
 		settings = config.Defaults()
 	} else if err != nil {
@@ -103,11 +112,18 @@ func main() {
 	}
 	defer capture.Close()
 
+	keys, bindings, err := resolveKeys(settings)
+	if err != nil {
+		winapi.MessageBox("Stendoclip", err.Error())
+		return
+	}
+
 	paster := paste.New(application.Window(), time.Duration(settings.PasteDelayMs)*time.Millisecond, application.Post, func(err error) {
 		log.Error("paste failed: %v", err)
 	})
 	bezel, err := overlay.New(
-		clips, historyPath, settings.HotkeyPin, time.Duration(settings.TimeoutSecs)*time.Second, settings.Wraparound,
+		clips, historyPath, bindings, time.Duration(settings.TimeoutSecs)*time.Second, settings.Wraparound,
+		int32(settings.BezelFontSize),
 		paster.Execute, func(err error) { log.Error("bezel failed: %v", err) },
 	)
 	if err != nil {
@@ -115,11 +131,14 @@ func main() {
 		return
 	}
 	defer bezel.Close()
-	if _, err := hotkey.Register(application.Window(), openHotkeyID, settings.HotkeyOpen); err != nil {
+
+	openSpec := keys.Open[0]
+	if _, err := hotkey.Register(application.Window(), openHotkeyID, openSpec); err != nil {
 		winapi.MessageBox("Stendoclip", err.Error())
 		return
 	}
 	defer winapi.UnregisterHotKey(application.Window(), openHotkeyID)
+
 	application.SetHotkeyHandler(func(id uintptr) {
 		if id == openHotkeyID {
 			if err := bezel.Open(); err != nil {
@@ -133,8 +152,16 @@ func main() {
 		winapi.MessageBox("Stendoclip", err.Error())
 		return
 	}
+	// GDI+ for About window PNG rendering.
+	gdipToken, err := winapi.GdiplusStartup()
+	if err != nil {
+		log.Error("gdiplus init: %v", err)
+	} else {
+		defer winapi.GdiplusShutdown(gdipToken)
+	}
+
 	systemTray, err := tray.New(
-		application.Window(), assets.WatergunIcon, clips, historyPath, executable, version, paster.Execute,
+		application.Window(), assets.WatergunIcon, assets.CowImage, clips, historyPath, executable, version, paster.Execute,
 		func(value bool) {
 			paused = value
 			log.Info("capture paused: %v", value)
@@ -148,6 +175,59 @@ func main() {
 	}
 	defer systemTray.Close()
 	application.SetMessageHandler(systemTray.HandleMessage)
+
+	// Config hot-reload watcher.
+	watcher, err := config.Watch(configPath, 500*time.Millisecond, func(cfg config.Config) {
+		application.Post(func() {
+			// Stack limits.
+			clips.SetMax(cfg.MaxHistory)
+			clips.SetMaxBytes(cfg.MaxEntryBytes)
+			capture.SetMaxBytes(cfg.MaxEntryBytes)
+
+			// Logger.
+			log.SetDebug(cfg.DebugLog)
+
+			// Paste delay.
+			paster.SetDelay(time.Duration(cfg.PasteDelayMs) * time.Millisecond)
+
+			// Bezel settings.
+			bezel.SetTimeout(time.Duration(cfg.TimeoutSecs) * time.Second)
+			bezel.SetWraparound(cfg.Wraparound)
+			bezel.SetFontSize(int32(cfg.BezelFontSize))
+
+			// Key bindings.
+			_, newBindings, err := resolveKeys(cfg)
+			if err != nil {
+				log.Error("config reload key bindings: %v", err)
+			} else {
+				bezel.SetBindings(newBindings)
+			}
+
+			// Global hotkey re-register.
+			newKeys := cfg.ResolvedKeys()
+			newOpen := newKeys.Open[0]
+			if newOpen != openSpec {
+				winapi.UnregisterHotKey(application.Window(), openHotkeyID)
+				if _, err := hotkey.Register(application.Window(), openHotkeyID, newOpen); err != nil {
+					log.Error("config reload hotkey: %v", err)
+					// Re-register old one as fallback.
+					hotkey.Register(application.Window(), openHotkeyID, openSpec)
+				} else {
+					log.Info("hotkey changed to %s", newOpen)
+				}
+			}
+
+			log.Info("config reloaded")
+		})
+	}, func(err error) {
+		log.Error("config watcher: %v", err)
+	})
+	if err != nil {
+		// Non-fatal: watcher failure doesn't prevent running.
+		log.Error("config watcher failed to start: %v", err)
+	} else {
+		defer watcher.Close()
+	}
 
 	log.Info("started %s", version)
 	if err := application.Run(); err != nil {

@@ -6,6 +6,26 @@ import (
 	"github.com/mooreceipts/stendoclip/internal/winapi"
 )
 
+func TestParseBindingsDefaults(t *testing.T) {
+	bindings, err := ParseBindings(
+		[]string{"Up", "Left"}, []string{"Down", "Right"},
+		[]string{"Enter"}, []string{"Escape"}, []string{"Delete"}, []string{"Ctrl+P"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bindings.Previous) != 2 || len(bindings.Next) != 2 || len(bindings.Pin) != 1 {
+		t.Fatalf("binding counts = prev:%d next:%d pin:%d", len(bindings.Previous), len(bindings.Next), len(bindings.Pin))
+	}
+}
+
+func TestParseBindingsRejectsInvalid(t *testing.T) {
+	_, err := ParseBindings([]string{"Up"}, []string{"Down"}, []string{"Enter"}, []string{"Escape"}, []string{"Delete"}, []string{"NotAKey"})
+	if err == nil {
+		t.Fatal("accepted invalid key")
+	}
+}
+
 func TestCenteredOnNegativeMonitor(t *testing.T) {
 	x, y, width, height := centered(winapi.Rect{Left: -1920, Top: -200, Right: 0, Bottom: 880})
 	if x != -1280 || y != 245 || width != 640 || height != 190 {

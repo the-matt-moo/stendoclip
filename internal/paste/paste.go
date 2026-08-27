@@ -19,6 +19,8 @@ func New(hwnd winapi.HWND, delay time.Duration, post func(func()) error, onError
 	return &Executor{hwnd: hwnd, delay: delay, post: post, onError: onError}
 }
 
+func (e *Executor) SetDelay(delay time.Duration) { e.delay = delay }
+
 func (e *Executor) Execute(target winapi.HWND, text string) error {
 	if target == 0 {
 		return fmt.Errorf("paste target is unavailable")

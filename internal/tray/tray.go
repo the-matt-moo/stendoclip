@@ -18,7 +18,9 @@ const (
 
 type Tray struct {
 	hwnd           winapi.HWND
+	instance       winapi.HINSTANCE
 	icon           winapi.HICON
+	aboutImage     []byte
 	stack          *store.ClippingStack
 	historyPath    string
 	executable     string
@@ -32,7 +34,11 @@ type Tray struct {
 	taskbarMessage uint32
 }
 
-func New(hwnd winapi.HWND, iconData []byte, stack *store.ClippingStack, historyPath, executable, version string, paste func(winapi.HWND, string) error, onPause func(bool), onQuit func() error, onError func(error)) (*Tray, error) {
+func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingStack, historyPath, executable, version string, paste func(winapi.HWND, string) error, onPause func(bool), onQuit func() error, onError func(error)) (*Tray, error) {
+	instance, err := winapi.GetModuleHandle()
+	if err != nil {
+		return nil, err
+	}
 	icon, err := loadIcon(iconData)
 	if err != nil {
 		return nil, err
@@ -43,7 +49,8 @@ func New(hwnd winapi.HWND, iconData []byte, stack *store.ClippingStack, historyP
 		return nil, err
 	}
 	tray := &Tray{
-		hwnd: hwnd, icon: icon, stack: stack, historyPath: historyPath, executable: executable, version: version,
+		hwnd: hwnd, instance: instance, icon: icon, aboutImage: aboutImage,
+		stack: stack, historyPath: historyPath, executable: executable, version: version,
 		paste: paste, onPause: onPause, onQuit: onQuit, onError: onError, taskbarMessage: taskbarMessage,
 	}
 	if err := tray.addIcon(); err != nil {

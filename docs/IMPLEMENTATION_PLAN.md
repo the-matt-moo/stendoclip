@@ -42,8 +42,8 @@ No systray library — direct `Shell_NotifyIconW` + `CreatePopupMenu` via `x/sys
 - [x] Phase 3 — Clipboard Monitoring (completed 26-08-2026)
 - [x] Phase 4 — Hotkeys + Overlay + Paste (completed 26-08-2026)
 - [x] Phase 5 — System Tray (completed 26-08-2026)
-- [ ] Phase 6 — Config Hot-Reload
-- [ ] Phase 7 — Polish + Release
+- [x] Phase 6 — Config Hot-Reload + Key Bindings (completed 26-08-2026)
+- [x] Phase 7 — Polish + Release (completed 26-08-2026)
 
 ## Phases
 
@@ -93,14 +93,18 @@ Completed: embedded custom tray and executable icons, dynamic recent clips and p
 ### Phase 6: Config Hot-Reload
 fsnotify watcher, debounced re-parse, apply changes (max_history trim, hotkey re-register, etc.).
 
-Files: `internal/config/watcher.go`, `internal/logger/rotate.go`
+Files: `internal/config/watcher.go`, `internal/config/config.go`
 
 Verify: Edit config.json while running, changes apply without restart.
+
+Completed: fsnotify watcher with 500ms debounce, hot-reload of all settings (max_history, max_entry_bytes, paste_delay, timeout, wraparound, debug_log, hotkey re-register), and fully customizable `keys` config block for all bezel actions (open, previous, next, paste, cancel, delete, pin) with multi-binding support and legacy field fallback.
 
 ### Phase 7: Polish + Release
 Graceful shutdown, DPI awareness, clipboard self-ownership skip, debounce rapid changes, `-H windowsgui` build flag.
 
 Verify: Full integration test across all features. <15MB memory, zero CPU idle.
+
+Completed: DPI per-monitor v2 manifest, clipboard self-ownership skip (ignores own paste writes), 100ms rapid-change debounce, Windows 10/11 compatibility GUIDs in manifest. All phases complete; version 1.0.0.
 
 ## Estimated Size
 ~2,700 lines Go code + ~530 lines tests. ~30 files total.

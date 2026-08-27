@@ -3,10 +3,13 @@ package clipboard
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/mooreceipts/stendoclip/internal/store"
 	"github.com/mooreceipts/stendoclip/internal/winapi"
 )
+
+const debounceInterval = 100 * time.Millisecond
 
 type Monitor struct {
 	hwnd        winapi.HWND
@@ -15,6 +18,7 @@ type Monitor struct {
 	maxBytes    int
 	formats     sensitiveFormats
 	started     bool
+	lastCapture time.Time
 }
 
 func NewMonitor(hwnd winapi.HWND, stack *store.ClippingStack, historyPath string, maxBytes int) (*Monitor, error) {
@@ -36,7 +40,20 @@ func (m *Monitor) Start() error {
 	return nil
 }
 
+func (m *Monitor) SetMaxBytes(n int) { m.maxBytes = n }
+
 func (m *Monitor) Capture() error {
+	// Skip our own clipboard writes.
+	if winapi.GetClipboardOwner() == m.hwnd {
+		return nil
+	}
+	// Debounce rapid clipboard changes.
+	now := time.Now()
+	if now.Sub(m.lastCapture) < debounceInterval {
+		return nil
+	}
+	m.lastCapture = now
+
 	text, err := ReadText(m.hwnd, m.maxBytes, m.formats)
 	if errors.Is(err, ErrNoText) || errors.Is(err, ErrSensitive) || errors.Is(err, ErrTooLarge) {
 		return nil

@@ -26,10 +26,13 @@ const (
 	WaitFailed  = 0xFFFFFFFF
 	Infinite    = 0xFFFFFFFF
 
-	WSPopup        = 0x80000000
-	WSExTopmost    = 0x00000008
-	WSExToolWindow = 0x00000080
-	WSExLayered    = 0x00080000
+	WSCaption         = 0x00C00000
+	WSSysMenu         = 0x00080000
+	WSPopup           = 0x80000000
+	WSExTopmost       = 0x00000008
+	WSExToolWindow    = 0x00000080
+	WSExLayered       = 0x00080000
+	WSExDlgModalFrame = 0x00000001
 
 	SWHide = 0
 	SWShow = 5
@@ -81,6 +84,19 @@ const (
 	DTSingleLine   = 0x0020
 	DTNoPrefix     = 0x0800
 	DTEndEllipsis  = 0x8000
+	DTCenter       = 0x0001
+	DTCalcRect     = 0x0400
+
+	FWNormal          = 400
+	DefaultCharset    = 1
+	OutDefaultPrecis  = 0
+	ClipDefaultPrecis = 0
+	ClearTypeQuality  = 5
+	DefaultPitch      = 0
+
+	DIFlagNormal = 0x0003
+
+	WMLButtonDown = 0x0201
 
 	NIMAdd        = 0x00000000
 	NIMDelete     = 0x00000002
@@ -103,6 +119,8 @@ const (
 	TPMRightButton = 0x0002
 	TPMNonotify    = 0x0080
 	TPMReturnCmd   = 0x0100
+
+	MBUserIcon = 0x00000080
 
 	ImageIcon      = 1
 	LRLoadFromFile = 0x0010

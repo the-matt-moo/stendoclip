@@ -110,6 +110,19 @@ type Input struct {
 	Data MouseInput
 }
 
+type MsgBoxParams struct {
+	CbSize         uint32
+	Owner          HWND
+	Instance       HINSTANCE
+	Text           *uint16
+	Caption        *uint16
+	Style          uint32
+	Icon           uintptr // MAKEINTRESOURCE(id)
+	ContextHelpId  uintptr
+	MsgBoxCallback uintptr
+	LanguageId     uint32
+}
+
 func NewKeyboardInput(key uint16, flags uint32) Input {
 	input := Input{Type: InputKeyboard}
 	*(*KeyboardInput)(unsafe.Pointer(&input.Data)) = KeyboardInput{VK: key, Flags: flags}

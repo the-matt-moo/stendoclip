@@ -12,6 +12,8 @@ var (
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
 	shell32  = windows.NewLazySystemDLL("shell32.dll")
 	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
+	gdiplus  = windows.NewLazySystemDLL("gdiplus.dll")
+	ole32    = windows.NewLazySystemDLL("ole32.dll")
 
 	procRegisterClassExW              = user32.NewProc("RegisterClassExW")
 	procUnregisterClassW              = user32.NewProc("UnregisterClassW")
@@ -33,8 +35,10 @@ var (
 	procGetCursorPos                  = user32.NewProc("GetCursorPos")
 	procPostMessageW                  = user32.NewProc("PostMessageW")
 	procMessageBoxW                   = user32.NewProc("MessageBoxW")
+	procMessageBoxIndirectW           = user32.NewProc("MessageBoxIndirectW")
 	procAddClipboardFormatListener    = user32.NewProc("AddClipboardFormatListener")
 	procRemoveClipboardFormatListener = user32.NewProc("RemoveClipboardFormatListener")
+	procGetClipboardOwner             = user32.NewProc("GetClipboardOwner")
 	procOpenClipboard                 = user32.NewProc("OpenClipboard")
 	procCloseClipboard                = user32.NewProc("CloseClipboard")
 	procEmptyClipboard                = user32.NewProc("EmptyClipboard")
@@ -62,6 +66,7 @@ var (
 	procFillRect                      = user32.NewProc("FillRect")
 	procDrawTextW                     = user32.NewProc("DrawTextW")
 	procSetLayeredWindowAttributes    = user32.NewProc("SetLayeredWindowAttributes")
+	procDrawIconEx                    = user32.NewProc("DrawIconEx")
 	procGetKeyState                   = user32.NewProc("GetKeyState")
 	procSendInput                     = user32.NewProc("SendInput")
 	procGetModuleHandleW              = kernel32.NewProc("GetModuleHandleW")
@@ -71,6 +76,7 @@ var (
 	procGlobalUnlock                  = kernel32.NewProc("GlobalUnlock")
 	procGlobalSize                    = kernel32.NewProc("GlobalSize")
 	procRtlMoveMemory                 = kernel32.NewProc("RtlMoveMemory")
+	procCreateFontW                   = gdi32.NewProc("CreateFontW")
 	procCreateSolidBrush              = gdi32.NewProc("CreateSolidBrush")
 	procDeleteObject                  = gdi32.NewProc("DeleteObject")
 	procGetStockObject                = gdi32.NewProc("GetStockObject")
@@ -78,6 +84,16 @@ var (
 	procSetBkMode                     = gdi32.NewProc("SetBkMode")
 	procSetTextColor                  = gdi32.NewProc("SetTextColor")
 	procShellNotifyIconW              = shell32.NewProc("Shell_NotifyIconW")
+
+	procGdiplusStartup             = gdiplus.NewProc("GdiplusStartup")
+	procGdiplusShutdown            = gdiplus.NewProc("GdiplusShutdown")
+	procGdipCreateBitmapFromStream = gdiplus.NewProc("GdipCreateBitmapFromStream")
+	procGdipDisposeImage           = gdiplus.NewProc("GdipDisposeImage")
+	procGdipDrawImageRectI         = gdiplus.NewProc("GdipDrawImageRectI")
+	procGdipCreateFromHDC          = gdiplus.NewProc("GdipCreateFromHDC")
+	procGdipDeleteGraphics         = gdiplus.NewProc("GdipDeleteGraphics")
+	procGdipSetInterpolationMode   = gdiplus.NewProc("GdipSetInterpolationMode")
+	procCreateStreamOnHGlobal      = ole32.NewProc("CreateStreamOnHGlobal")
 )
 
 func RegisterClassEx(class *WndClassEx) (uint16, error) {
@@ -294,6 +310,17 @@ func DrawText(dc HDC, text string, rect *Rect, format uint32) error {
 	return nil
 }
 
+func DrawIconEx(dc HDC, x, y int32, icon HICON, width, height int32, flags uint32) error {
+	r, _, callErr := procDrawIconEx.Call(
+		uintptr(dc), uintptr(x), uintptr(y), uintptr(icon),
+		uintptr(width), uintptr(height), 0, 0, uintptr(flags),
+	)
+	if r == 0 {
+		return syscallError("DrawIconEx", callErr)
+	}
+	return nil
+}
+
 func SetLayeredWindowAlpha(hwnd HWND, alpha byte) error {
 	r, _, callErr := procSetLayeredWindowAttributes.Call(uintptr(hwnd), 0, uintptr(alpha), LayeredWindowAlpha)
 	if r == 0 {
@@ -318,6 +345,19 @@ func SendInput(inputs []Input) error {
 		return syscallError("SendInput", callErr)
 	}
 	return nil
+}
+
+func CreateFont(height int32) (HGDIOBJ, error) {
+	face, _ := windows.UTF16PtrFromString("Segoe UI")
+	r, _, callErr := procCreateFontW.Call(
+		uintptr(height), 0, 0, 0, FWNormal, 0, 0, 0,
+		DefaultCharset, OutDefaultPrecis, ClipDefaultPrecis, ClearTypeQuality,
+		DefaultPitch, uintptr(unsafe.Pointer(face)),
+	)
+	if r == 0 {
+		return 0, syscallError("CreateFontW", callErr)
+	}
+	return HGDIOBJ(r), nil
 }
 
 func CreateSolidBrush(color uint32) (HBRUSH, error) {
@@ -352,6 +392,11 @@ func SetTextColor(dc HDC, color uint32) {
 
 func RGB(red, green, blue byte) uint32 {
 	return uint32(red) | uint32(green)<<8 | uint32(blue)<<16
+}
+
+func GetClipboardOwner() HWND {
+	r, _, _ := procGetClipboardOwner.Call()
+	return HWND(r)
 }
 
 func AddClipboardFormatListener(hwnd HWND) error {
@@ -482,6 +527,21 @@ func LoadIcon(instance HINSTANCE, resourceID uint16) (HICON, error) {
 	return HICON(r), nil
 }
 
+// FindIconGroupID probes RT_GROUP_ICON resource IDs to find the nth group (0-indexed).
+// Returns 0 if not found.
+func FindIconGroupID(instance HINSTANCE, index int) uint16 {
+	for id := uint16(1); id < 256; id++ {
+		_, err := LoadIcon(instance, id)
+		if err == nil {
+			if index == 0 {
+				return id
+			}
+			index--
+		}
+	}
+	return 0
+}
+
 func LoadIconFile(path string) (HICON, error) {
 	pointer, err := windows.UTF16PtrFromString(path)
 	if err != nil {
@@ -572,10 +632,95 @@ func MessageBoxInfo(title, message string) {
 	messageBox(title, message, 0x40)
 }
 
+func MessageBoxWithIcon(title, message string, instance HINSTANCE, iconResourceID uint16) {
+	titlePtr, _ := windows.UTF16PtrFromString(title)
+	messagePtr, _ := windows.UTF16PtrFromString(message)
+	params := MsgBoxParams{
+		Instance: instance,
+		Text:     messagePtr,
+		Caption:  titlePtr,
+		Style:    MBUserIcon,
+		Icon:     uintptr(iconResourceID),
+	}
+	params.CbSize = uint32(unsafe.Sizeof(params))
+	procMessageBoxIndirectW.Call(uintptr(unsafe.Pointer(&params)))
+}
+
 func messageBox(title, message string, flags uint32) {
 	titlePtr, _ := windows.UTF16PtrFromString(title)
 	messagePtr, _ := windows.UTF16PtrFromString(message)
 	procMessageBoxW.Call(0, uintptr(unsafe.Pointer(messagePtr)), uintptr(unsafe.Pointer(titlePtr)), uintptr(flags))
+}
+
+// GDI+ minimal surface for rendering embedded PNGs.
+
+type GdiplusToken uintptr
+type GpImage uintptr
+type GpGraphics uintptr
+
+type gdiplusStartupInput struct {
+	Version           uint32
+	DebugCallback     uintptr
+	SuppressBG        int32
+	SuppressExtCodecs int32
+}
+
+func GdiplusStartup() (GdiplusToken, error) {
+	input := gdiplusStartupInput{Version: 1}
+	var token GdiplusToken
+	r, _, _ := procGdiplusStartup.Call(uintptr(unsafe.Pointer(&token)), uintptr(unsafe.Pointer(&input)), 0)
+	if r != 0 {
+		return 0, fmt.Errorf("GdiplusStartup status %d", r)
+	}
+	return token, nil
+}
+
+func GdiplusShutdown(token GdiplusToken) {
+	procGdiplusShutdown.Call(uintptr(token))
+}
+
+func GdipLoadImageFromBytes(data []byte) (GpImage, error) {
+	hMem, err := GlobalAlloc(GMEMMoveable, uintptr(len(data)))
+	if err != nil {
+		return 0, err
+	}
+	if err := GlobalWrite(hMem, data); err != nil {
+		GlobalFree(hMem)
+		return 0, err
+	}
+	var stream uintptr
+	r, _, _ := procCreateStreamOnHGlobal.Call(uintptr(hMem), 1, uintptr(unsafe.Pointer(&stream)))
+	if r != 0 {
+		GlobalFree(hMem)
+		return 0, fmt.Errorf("CreateStreamOnHGlobal hr=0x%x", r)
+	}
+	var image GpImage
+	r2, _, _ := procGdipCreateBitmapFromStream.Call(stream, uintptr(unsafe.Pointer(&image)))
+	// Stream leaks until process exit; fDeleteOnRelease=TRUE frees the HGLOBAL.
+	// COM Release requires unsafe vtable traversal that go vet rejects.
+	// ponytail: About dialog opens rarely, not worth the unsafe gymnastics.
+	if r2 != 0 {
+		return 0, fmt.Errorf("GdipCreateBitmapFromStream status %d", r2)
+	}
+	return image, nil
+}
+
+func GdipDisposeImage(image GpImage) {
+	procGdipDisposeImage.Call(uintptr(image))
+}
+
+func GdipDrawImageRect(dc HDC, image GpImage, x, y, width, height int32) error {
+	var graphics GpGraphics
+	if r, _, _ := procGdipCreateFromHDC.Call(uintptr(dc), uintptr(unsafe.Pointer(&graphics))); r != 0 {
+		return fmt.Errorf("GdipCreateFromHDC status %d", r)
+	}
+	defer procGdipDeleteGraphics.Call(uintptr(graphics))
+	// InterpolationModeHighQualityBicubic = 7
+	procGdipSetInterpolationMode.Call(uintptr(graphics), 7)
+	if r, _, _ := procGdipDrawImageRectI.Call(uintptr(graphics), uintptr(image), uintptr(x), uintptr(y), uintptr(width), uintptr(height)); r != 0 {
+		return fmt.Errorf("GdipDrawImageRectI status %d", r)
+	}
+	return nil
 }
 
 func syscallError(name string, err error) error {

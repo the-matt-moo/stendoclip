@@ -23,6 +23,15 @@ var (
 	activeMu           sync.Mutex
 )
 
+type KeyBindings struct {
+	Previous []hotkey.Binding
+	Next     []hotkey.Binding
+	Paste    []hotkey.Binding
+	Cancel   []hotkey.Binding
+	Delete   []hotkey.Binding
+	Pin      []hotkey.Binding
+}
+
 type Controller struct {
 	hwnd        winapi.HWND
 	instance    winapi.HINSTANCE
@@ -32,7 +41,9 @@ type Controller struct {
 	historyPath string
 	timeout     time.Duration
 	wraparound  bool
-	pinBinding  hotkey.Binding
+	bindings    KeyBindings
+	fontSize    int32
+	font        winapi.HGDIOBJ
 	paste       func(winapi.HWND, string) error
 	onError     func(error)
 	target      winapi.HWND
@@ -40,14 +51,55 @@ type Controller struct {
 	visible     bool
 }
 
-func New(stack *store.ClippingStack, historyPath, pinSpec string, timeout time.Duration, wraparound bool, paste func(winapi.HWND, string) error, onError func(error)) (*Controller, error) {
+func ParseBindings(previous, next, paste, cancel, del, pin []string) (KeyBindings, error) {
+	var bindings KeyBindings
+	var err error
+	if bindings.Previous, err = parseAll(previous); err != nil {
+		return KeyBindings{}, fmt.Errorf("previous: %w", err)
+	}
+	if bindings.Next, err = parseAll(next); err != nil {
+		return KeyBindings{}, fmt.Errorf("next: %w", err)
+	}
+	if bindings.Paste, err = parseAll(paste); err != nil {
+		return KeyBindings{}, fmt.Errorf("paste: %w", err)
+	}
+	if bindings.Cancel, err = parseAll(cancel); err != nil {
+		return KeyBindings{}, fmt.Errorf("cancel: %w", err)
+	}
+	if bindings.Delete, err = parseAll(del); err != nil {
+		return KeyBindings{}, fmt.Errorf("delete: %w", err)
+	}
+	if bindings.Pin, err = parseAll(pin); err != nil {
+		return KeyBindings{}, fmt.Errorf("pin: %w", err)
+	}
+	return bindings, nil
+}
+
+func parseAll(specs []string) ([]hotkey.Binding, error) {
+	out := make([]hotkey.Binding, len(specs))
+	for i, spec := range specs {
+		b, err := hotkey.Parse(spec)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = b
+	}
+	return out, nil
+}
+
+func matchesAny(bindings []hotkey.Binding, key uint32) bool {
+	for _, b := range bindings {
+		if hotkey.Matches(b, key) {
+			return true
+		}
+	}
+	return false
+}
+
+func New(stack *store.ClippingStack, historyPath string, bindings KeyBindings, timeout time.Duration, wraparound bool, fontSize int32, paste func(winapi.HWND, string) error, onError func(error)) (*Controller, error) {
 	instance, err := winapi.GetModuleHandle()
 	if err != nil {
 		return nil, err
-	}
-	pinBinding, err := hotkey.Parse(pinSpec)
-	if err != nil {
-		return nil, fmt.Errorf("parse pin hotkey: %w", err)
 	}
 	className, err := windows.UTF16PtrFromString(fmt.Sprintf("Stendoclip.Bezel.%d", os.Getpid()))
 	if err != nil {
@@ -57,9 +109,14 @@ func New(stack *store.ClippingStack, historyPath, pinSpec string, timeout time.D
 	if err != nil {
 		return nil, err
 	}
+	if fontSize < 8 {
+		fontSize = 18
+	}
+	font, _ := winapi.CreateFont(fontSize)
 	controller := &Controller{
 		instance: instance, className: className, brush: brush, stack: stack, historyPath: historyPath,
-		timeout: timeout, wraparound: wraparound, pinBinding: pinBinding, paste: paste, onError: onError,
+		timeout: timeout, wraparound: wraparound, bindings: bindings, fontSize: fontSize, font: font,
+		paste: paste, onError: onError,
 	}
 	class := winapi.WndClassEx{WndProc: windowProcCallback, Instance: instance, ClassName: className}
 	class.CbSize = uint32(unsafe.Sizeof(class))
@@ -135,6 +192,10 @@ func (c *Controller) Close() error {
 		winapi.DeleteObject(winapi.HGDIOBJ(c.brush))
 		c.brush = 0
 	}
+	if c.font != 0 {
+		winapi.DeleteObject(c.font)
+		c.font = 0
+	}
 	activeMu.Lock()
 	if active == c {
 		active = nil
@@ -143,8 +204,34 @@ func (c *Controller) Close() error {
 	return result
 }
 
+func (c *Controller) SetBindings(bindings KeyBindings) {
+	c.bindings = bindings
+}
+
+func (c *Controller) SetTimeout(timeout time.Duration) {
+	c.timeout = timeout
+}
+
+func (c *Controller) SetWraparound(wraparound bool) {
+	c.wraparound = wraparound
+}
+
+func (c *Controller) SetFontSize(size int32) {
+	if size < 8 {
+		size = 18
+	}
+	if size == c.fontSize {
+		return
+	}
+	c.fontSize = size
+	if c.font != 0 {
+		winapi.DeleteObject(c.font)
+	}
+	c.font, _ = winapi.CreateFont(size)
+}
+
 func (c *Controller) handleKey(key uint32, repeated bool) {
-	if hotkey.Matches(c.pinBinding, key) {
+	if matchesAny(c.bindings.Pin, key) {
 		if repeated {
 			return
 		}
@@ -155,21 +242,21 @@ func (c *Controller) handleKey(key uint32, repeated bool) {
 		c.refresh()
 		return
 	}
-	switch key {
-	case winapi.VKUp, winapi.VKLeft:
+	switch {
+	case matchesAny(c.bindings.Previous, key):
 		c.cycle(-1)
-	case winapi.VKDown, winapi.VKRight:
+	case matchesAny(c.bindings.Next, key):
 		c.cycle(1)
-	case winapi.VKReturn:
+	case matchesAny(c.bindings.Paste, key):
 		entry := c.stack.Get(c.index)
 		target := c.target
 		c.hide()
 		if c.paste != nil {
 			c.report(c.paste(target, entry.Text))
 		}
-	case winapi.VKEscape:
+	case matchesAny(c.bindings.Cancel, key):
 		c.dismiss()
-	case winapi.VKDelete:
+	case matchesAny(c.bindings.Delete, key):
 		c.stack.Delete(c.index)
 		c.save()
 		if c.stack.Len() == 0 {

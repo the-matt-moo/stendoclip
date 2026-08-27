@@ -105,6 +105,12 @@ func parseKey(key string) (uint32, bool) {
 		"ESCAPE":    winapi.VKEscape,
 		"SPACE":     winapi.VKSpace,
 		"TAB":       winapi.VKTab,
+		"UP":        winapi.VKUp,
+		"DOWN":      winapi.VKDown,
+		"LEFT":      winapi.VKLeft,
+		"RIGHT":     winapi.VKRight,
+		"HOME":      winapi.VKHome,
+		"END":       winapi.VKEnd,
 	}
 	value, ok := keys[key]
 	return value, ok
