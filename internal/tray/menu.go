@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mooreceipts/stendoclip/internal/export"
 	"github.com/mooreceipts/stendoclip/internal/store"
 	"github.com/mooreceipts/stendoclip/internal/winapi"
 )
@@ -15,7 +16,8 @@ const (
 	clearID    = 3002
 	startupID  = 3003
 	aboutID    = 3004
-	quitID     = 3005
+	exportID   = 3005
+	quitID     = 3006
 	menuLimit  = 10
 )
 
@@ -112,6 +114,9 @@ func (t *Tray) buildMenu() (state menuState, err error) {
 	if err = winapi.AppendMenu(state.menu, winapi.MFSeparator, 0, ""); err != nil {
 		return state, err
 	}
+	if err = winapi.AppendMenu(state.menu, winapi.MFString, exportID, "Export history to Markdown..."); err != nil {
+		return state, err
+	}
 	if err = winapi.AppendMenu(state.menu, winapi.MFString, aboutID, "About Stendoclip"); err != nil {
 		return state, err
 	}
@@ -142,6 +147,20 @@ func (t *Tray) runCommand(command uint32, state menuState, target winapi.HWND) {
 			err = setStartup(t.executable, !enabled)
 		}
 		t.report(err)
+	case command == exportID:
+		path := t.markdownExportPath
+		if path == "" {
+			selectedPath, ok, err := winapi.SaveMarkdownPath(t.hwnd)
+			if err != nil {
+				t.report(err)
+				return
+			}
+			if !ok {
+				return
+			}
+			path = selectedPath
+		}
+		t.report(export.ToMarkdown(t.stack, path))
 	case command == aboutID:
 		showAbout(t.instance, t.aboutImage, t.version)
 	case command == quitID:

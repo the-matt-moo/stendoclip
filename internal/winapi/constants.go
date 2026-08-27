@@ -94,6 +94,10 @@ const (
 	ClearTypeQuality  = 5
 	DefaultPitch      = 0
 
+	OFNOverwritePrompt = 0x00000002
+	OFNNoChangeDir     = 0x00000008
+	OFNPathMustExist   = 0x00000800
+
 	DIFlagNormal = 0x0003
 
 	WMLButtonDown = 0x0201

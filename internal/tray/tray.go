@@ -17,24 +17,25 @@ const (
 )
 
 type Tray struct {
-	hwnd           winapi.HWND
-	instance       winapi.HINSTANCE
-	icon           winapi.HICON
-	aboutImage     []byte
-	stack          *store.ClippingStack
-	historyPath    string
-	executable     string
-	version        string
-	paste          func(winapi.HWND, string) error
-	onPause        func(bool)
-	onQuit         func() error
-	onError        func(error)
-	paused         bool
-	added          bool
-	taskbarMessage uint32
+	hwnd               winapi.HWND
+	instance           winapi.HINSTANCE
+	icon               winapi.HICON
+	aboutImage         []byte
+	stack              *store.ClippingStack
+	historyPath        string
+	markdownExportPath string
+	executable         string
+	version            string
+	paste              func(winapi.HWND, string) error
+	onPause            func(bool)
+	onQuit             func() error
+	onError            func(error)
+	paused             bool
+	added              bool
+	taskbarMessage     uint32
 }
 
-func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingStack, historyPath, executable, version string, paste func(winapi.HWND, string) error, onPause func(bool), onQuit func() error, onError func(error)) (*Tray, error) {
+func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingStack, historyPath, markdownExportPath, executable, version string, paste func(winapi.HWND, string) error, onPause func(bool), onQuit func() error, onError func(error)) (*Tray, error) {
 	instance, err := winapi.GetModuleHandle()
 	if err != nil {
 		return nil, err
@@ -50,7 +51,7 @@ func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingSta
 	}
 	tray := &Tray{
 		hwnd: hwnd, instance: instance, icon: icon, aboutImage: aboutImage,
-		stack: stack, historyPath: historyPath, executable: executable, version: version,
+		stack: stack, historyPath: historyPath, markdownExportPath: markdownExportPath, executable: executable, version: version,
 		paste: paste, onPause: onPause, onQuit: onQuit, onError: onError, taskbarMessage: taskbarMessage,
 	}
 	if err := tray.addIcon(); err != nil {
@@ -106,6 +107,8 @@ func (t *Tray) addIcon() error {
 	}
 	return nil
 }
+
+func (t *Tray) SetMarkdownExportPath(path string) { t.markdownExportPath = path }
 
 func (t *Tray) Close() error {
 	var result error

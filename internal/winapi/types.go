@@ -54,6 +54,32 @@ type WndClassEx struct {
 	IconSm     HICON
 }
 
+type OpenFileName struct {
+	StructSize      uint32
+	Owner           HWND
+	Instance        HINSTANCE
+	Filter          *uint16
+	CustomFilter    *uint16
+	MaxCustomFilter uint32
+	FilterIndex     uint32
+	File            *uint16
+	MaxFile         uint32
+	FileTitle       *uint16
+	MaxFileTitle    uint32
+	InitialDir      *uint16
+	Title           *uint16
+	Flags           uint32
+	FileOffset      uint16
+	FileExtension   uint16
+	DefaultExt      *uint16
+	CustData        uintptr
+	Hook            uintptr
+	TemplateName    *uint16
+	Reserved        uintptr
+	ReservedFlags   uint32
+	FlagsEx         uint32
+}
+
 type NotifyIconData struct {
 	CbSize         uint32
 	HWnd           HWND

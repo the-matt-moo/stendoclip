@@ -14,6 +14,7 @@ var (
 	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
 	gdiplus  = windows.NewLazySystemDLL("gdiplus.dll")
 	ole32    = windows.NewLazySystemDLL("ole32.dll")
+	comdlg32 = windows.NewLazySystemDLL("comdlg32.dll")
 
 	procRegisterClassExW              = user32.NewProc("RegisterClassExW")
 	procUnregisterClassW              = user32.NewProc("UnregisterClassW")
@@ -68,6 +69,8 @@ var (
 	procSetLayeredWindowAttributes    = user32.NewProc("SetLayeredWindowAttributes")
 	procDrawIconEx                    = user32.NewProc("DrawIconEx")
 	procGetKeyState                   = user32.NewProc("GetKeyState")
+	procGetSaveFileNameW              = comdlg32.NewProc("GetSaveFileNameW")
+	procCommDlgExtendedError          = comdlg32.NewProc("CommDlgExtendedError")
 	procSendInput                     = user32.NewProc("SendInput")
 	procGetModuleHandleW              = kernel32.NewProc("GetModuleHandleW")
 	procGlobalAlloc                   = kernel32.NewProc("GlobalAlloc")
@@ -397,6 +400,29 @@ func RGB(red, green, blue byte) uint32 {
 func GetClipboardOwner() HWND {
 	r, _, _ := procGetClipboardOwner.Call()
 	return HWND(r)
+}
+
+func SaveMarkdownPath(owner HWND) (string, bool, error) {
+	file := make([]uint16, 32768)
+	filter, _ := windows.UTF16PtrFromString("Markdown files (*.md)\x00*.md\x00All files (*.*)\x00*.*\x00\x00")
+	title, _ := windows.UTF16PtrFromString("Export clipboard history")
+	defaultExt, _ := windows.UTF16PtrFromString("md")
+	defaultName, _ := windows.UTF16FromString("stendoclip-history.md")
+	copy(file, defaultName)
+	dialog := OpenFileName{
+		StructSize: uint32(unsafe.Sizeof(OpenFileName{})), Owner: owner,
+		Filter: filter, File: &file[0], MaxFile: uint32(len(file)), Title: title, DefaultExt: defaultExt,
+		Flags: OFNOverwritePrompt | OFNPathMustExist | OFNNoChangeDir,
+	}
+	r, _, _ := procGetSaveFileNameW.Call(uintptr(unsafe.Pointer(&dialog)))
+	if r != 0 {
+		return windows.UTF16ToString(file), true, nil
+	}
+	errCode, _, _ := procCommDlgExtendedError.Call()
+	if errCode == 0 {
+		return "", false, nil
+	}
+	return "", false, fmt.Errorf("GetSaveFileNameW: 0x%X", errCode)
 }
 
 func AddClipboardFormatListener(hwnd HWND) error {

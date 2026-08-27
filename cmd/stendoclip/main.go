@@ -84,6 +84,10 @@ func main() {
 	}
 	clips.SetMax(settings.MaxHistory)
 	clips.SetMaxBytes(settings.MaxEntryBytes)
+	markdownExportPath := settings.MarkdownExportPath
+	if markdownExportPath != "" && !filepath.IsAbs(markdownExportPath) {
+		markdownExportPath = filepath.Join(dataDir, markdownExportPath)
+	}
 
 	application, err := app.New(version)
 	if err != nil {
@@ -161,7 +165,7 @@ func main() {
 	}
 
 	systemTray, err := tray.New(
-		application.Window(), assets.WatergunIcon, assets.CowImage, clips, historyPath, executable, version, paster.Execute,
+		application.Window(), assets.WatergunIcon, assets.CowImage, clips, historyPath, markdownExportPath, executable, version, paster.Execute,
 		func(value bool) {
 			paused = value
 			log.Info("capture paused: %v", value)
@@ -184,8 +188,13 @@ func main() {
 			clips.SetMaxBytes(cfg.MaxEntryBytes)
 			capture.SetMaxBytes(cfg.MaxEntryBytes)
 
-			// Logger.
+			// Logger and export location.
 			log.SetDebug(cfg.DebugLog)
+			exportPath := cfg.MarkdownExportPath
+			if exportPath != "" && !filepath.IsAbs(exportPath) {
+				exportPath = filepath.Join(dataDir, exportPath)
+			}
+			systemTray.SetMarkdownExportPath(exportPath)
 
 			// Paste delay.
 			paster.SetDelay(time.Duration(cfg.PasteDelayMs) * time.Millisecond)

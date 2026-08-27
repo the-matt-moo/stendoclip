@@ -18,17 +18,18 @@ type Keys struct {
 }
 
 type Config struct {
-	MaxHistory    int    `json:"max_history"`
-	MaxEntryBytes int    `json:"max_entry_bytes"`
-	PasteDelayMs  int    `json:"paste_delay_ms"`
-	TimeoutSecs   int    `json:"timeout_secs"`
-	Wraparound    bool   `json:"wraparound"`
-	DebugLog      bool   `json:"debug_log"`
-	HotkeyOpen    string `json:"hotkey_open"`
-	HotkeyPin     string `json:"hotkey_pin"`
-	HistoryPath   string `json:"history_path"`
-	BezelFontSize int    `json:"bezel_font_size"`
-	Keys          *Keys  `json:"keys,omitempty"`
+	MaxHistory         int    `json:"max_history"`
+	MaxEntryBytes      int    `json:"max_entry_bytes"`
+	PasteDelayMs       int    `json:"paste_delay_ms"`
+	TimeoutSecs        int    `json:"timeout_secs"`
+	Wraparound         bool   `json:"wraparound"`
+	DebugLog           bool   `json:"debug_log"`
+	HotkeyOpen         string `json:"hotkey_open"`
+	HotkeyPin          string `json:"hotkey_pin"`
+	HistoryPath        string `json:"history_path"`
+	MarkdownExportPath string `json:"markdown_export_path"`
+	BezelFontSize      int    `json:"bezel_font_size"`
+	Keys               *Keys  `json:"keys,omitempty"`
 }
 
 func DefaultKeys() Keys {
