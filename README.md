@@ -51,16 +51,45 @@ Configuration is JSON. Unspecified fields retain these defaults:
 | `history_path` | `""` | Custom clipboard-history file path |
 | `bezel_font_size` | `18` | Bezel text size in pixels |
 
-Configuration lives at `%AppData%\\Stendoclip\\config.json`. History defaults to `%AppData%\\Stendoclip\\history.json`; relative `history_path` values resolve from that directory.
+Configuration lives at `%AppData%\\Stendoclip\\config.json`.
 
-All settings are hot-reloaded: save the file while Stendoclip is running and changes take effect within one second. Invalid config is logged and ignored.
+### User customizations
+
+| Option | Hot-reload | Notes |
+|---|---|---|
+| `max_history` | yes | Max unpinned clips kept in memory/history |
+| `max_entry_bytes` | yes | Clip size cap, 1..10MB guardrail |
+| `paste_delay_ms` | yes | Delay before simulated Ctrl+V |
+| `timeout_secs` | yes | Bezel auto-close timeout |
+| `wraparound` | yes | Wrap clip navigation |
+| `debug_log` | yes | Extra logging |
+| `bezel_font_size` | yes | Bezel text size in pixels, min 8 |
+| `keys` | yes | Full key-binding override for bezel actions |
+| `hotkey_open` / `hotkey_pin` | yes | Legacy single-hotkey fallback only |
+| `history_path` | restart | Move persisted history/pins file |
+
+Clips and pins are persisted to `%AppData%\\Stendoclip\\history.json` (customisable via `history_path`) and survive restarts. Pinned clips are exempt from the `max_history` cap. Relative `history_path` values resolve from the config directory.
+
+All settings except `history_path` are hot-reloaded: save the file while Stendoclip is running and changes take effect within one second. Invalid config is logged and ignored.
 
 Example:
 
 ```json
 {
   "max_history": 100,
-  "history_path": "C:\\Users\\me\\Documents\\stendoclip-history.json"
+  "max_entry_bytes": 262144,
+  "paste_delay_ms": 150,
+  "timeout_secs": 8,
+  "wraparound": false,
+  "debug_log": true,
+  "bezel_font_size": 22,
+  "history_path": "C:\\Users\\me\\Documents\\stendoclip-history.json",
+  "keys": {
+    "open": ["Ctrl+Alt+V"],
+    "previous": ["K", "Up"],
+    "next": ["J", "Down"],
+    "cancel": ["Q", "Escape"]
+  }
 }
 ```
 
