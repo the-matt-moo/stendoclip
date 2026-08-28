@@ -1,10 +1,33 @@
 package tray
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/mooreceipts/stendoclip/internal/winapi"
 )
+
+func TestAboutCanBeReopened(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	instance, err := winapi.GetModuleHandle()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for attempt := 1; attempt <= 2; attempt++ {
+		showAbout(instance, nil, "test")
+		activeAboutMu.Lock()
+		about := activeAbout
+		activeAboutMu.Unlock()
+		if about == nil {
+			t.Fatalf("attempt %d did not create the About window", attempt)
+		}
+		if err := winapi.DestroyWindow(about.hwnd); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
 
 func TestLayoutAboutFitsClient(t *testing.T) {
 	for _, client := range []winapi.Rect{

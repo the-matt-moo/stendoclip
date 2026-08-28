@@ -22,16 +22,44 @@ const (
 
 var (
 	aboutProcCallback = windows.NewCallback(aboutProc)
+	aboutClassOnce    sync.Once
+	aboutClassName    *uint16
+	aboutClassErr     error
 	activeAbout       *aboutWindow
 	activeAboutMu     sync.Mutex
 )
 
 type aboutWindow struct {
-	hwnd      winapi.HWND
-	instance  winapi.HINSTANCE
-	className *uint16
-	image     winapi.GpImage
-	text      string
+	hwnd  winapi.HWND
+	image winapi.GpImage
+	text  string
+}
+
+// The class and its background brush live until process exit; unregistering during
+// WM_DESTROY happens before Windows finishes destroying the window and breaks reopening.
+func getAboutClass(instance winapi.HINSTANCE) (*uint16, error) {
+	aboutClassOnce.Do(func() {
+		aboutClassName, aboutClassErr = windows.UTF16PtrFromString(fmt.Sprintf("Stendoclip.About.%d", os.Getpid()))
+		if aboutClassErr != nil {
+			return
+		}
+		brush, err := winapi.CreateSolidBrush(winapi.RGB(255, 255, 255))
+		if err != nil {
+			aboutClassErr = err
+			return
+		}
+		class := winapi.WndClassEx{
+			WndProc:    aboutProcCallback,
+			Instance:   instance,
+			ClassName:  aboutClassName,
+			Background: winapi.HBRUSH(brush),
+		}
+		class.CbSize = uint32(unsafe.Sizeof(class))
+		if _, aboutClassErr = winapi.RegisterClassEx(&class); aboutClassErr != nil {
+			winapi.DeleteObject(winapi.HGDIOBJ(brush))
+		}
+	})
+	return aboutClassName, aboutClassErr
 }
 
 func showAbout(ownerInstance winapi.HINSTANCE, imageData []byte, version string) {
@@ -44,7 +72,7 @@ func showAbout(ownerInstance winapi.HINSTANCE, imageData []byte, version string)
 	}
 	activeAboutMu.Unlock()
 
-	className, err := windows.UTF16PtrFromString(fmt.Sprintf("Stendoclip.About.%d", os.Getpid()))
+	className, err := getAboutClass(ownerInstance)
 	if err != nil {
 		return
 	}
@@ -56,35 +84,11 @@ func showAbout(ownerInstance winapi.HINSTANCE, imageData []byte, version string)
 	}
 
 	about := &aboutWindow{
-		instance:  ownerInstance,
-		className: className,
-		image:     image,
+		image: image,
 		text: fmt.Sprintf(
 			"Stendoclip %s\n\nKeyboard-first clipboard manager for Windows.\n\nCreated by Matt Moo\nLicense: MIT\nhttps://github.com/the-matt-moo/stendoclip",
 			version,
 		),
-	}
-
-	brush, err := winapi.CreateSolidBrush(winapi.RGB(255, 255, 255))
-	if err != nil {
-		if image != 0 {
-			winapi.GdipDisposeImage(image)
-		}
-		return
-	}
-	class := winapi.WndClassEx{
-		WndProc:    aboutProcCallback,
-		Instance:   ownerInstance,
-		ClassName:  className,
-		Background: winapi.HBRUSH(brush),
-	}
-	class.CbSize = uint32(unsafe.Sizeof(class))
-	if _, err := winapi.RegisterClassEx(&class); err != nil {
-		winapi.DeleteObject(winapi.HGDIOBJ(brush))
-		if image != 0 {
-			winapi.GdipDisposeImage(image)
-		}
-		return
 	}
 
 	activeAboutMu.Lock()
@@ -112,7 +116,6 @@ func showAbout(ownerInstance winapi.HINSTANCE, imageData []byte, version string)
 		activeAboutMu.Lock()
 		activeAbout = nil
 		activeAboutMu.Unlock()
-		_ = winapi.UnregisterClass(className, ownerInstance)
 		if image != 0 {
 			winapi.GdipDisposeImage(image)
 		}
@@ -149,15 +152,12 @@ func aboutProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 	case winapi.WMDestroy:
 		activeAboutMu.Lock()
 		if activeAbout != nil && activeAbout.hwnd == winapi.HWND(hwnd) {
-			inst := activeAbout.instance
-			cls := activeAbout.className
 			img := activeAbout.image
 			activeAbout = nil
 			activeAboutMu.Unlock()
 			if img != 0 {
 				winapi.GdipDisposeImage(img)
 			}
-			_ = winapi.UnregisterClass(cls, inst)
 		} else {
 			activeAboutMu.Unlock()
 		}

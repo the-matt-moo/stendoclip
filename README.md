@@ -25,7 +25,7 @@ Right-click the watergun tray icon to:
 - Clear unpinned clips
 - **Increase or decrease font size** (persisted to `config.json`)
 - Toggle Start with Windows
-- View version information
+- Open the About window for version and project information; reopen it whenever needed
 - Quit
 
 The icon is embedded in both the tray and compiled executable from `assets/watergun_icon.ico`, so no external asset file is required at runtime.
