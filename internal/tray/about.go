@@ -12,11 +12,12 @@ import (
 )
 
 const (
-	aboutWidth  = 440
-	aboutHeight = 440
-	imageWidth  = 256
-	imageHeight = 145 // 920:521 aspect ratio scaled to fit 256 wide
-	imageTop    = 20
+	aboutWidth       = 440
+	aboutHeight      = 440
+	aboutPadding     = 16
+	aboutImageWidth  = 256
+	aboutImageHeight = 145 // 920:521 aspect ratio
+	aboutImageGap    = 12
 )
 
 var (
@@ -178,23 +179,41 @@ func (a *aboutWindow) paint() {
 		return
 	}
 
-	// Draw image centered horizontally via GDI+, preserving aspect ratio.
-	if a.image != 0 {
-		imgX := (client.Right - imageWidth) / 2
-		_ = winapi.GdipDrawImageRect(dc, a.image, imgX, imageTop, imageWidth, imageHeight)
-	}
-
-	// Draw text centered below image.
 	winapi.SetBkMode(dc, winapi.Transparent)
 	winapi.SetTextColor(dc, winapi.RGB(30, 30, 30))
 	previousFont := winapi.SelectObject(dc, winapi.GetStockObject(winapi.DefaultGUIFont))
 	defer winapi.SelectObject(dc, previousFont)
 
-	textRect := winapi.Rect{
-		Left:   24,
-		Top:    imageTop + imageHeight + 16,
-		Right:  client.Right - 24,
-		Bottom: client.Bottom - 12,
+	// Measure the DPI-scaled system font, then fit artwork into the remaining client area.
+	// Windows can provide a smaller client rectangle on differently scaled monitors.
+	measure := winapi.Rect{Left: aboutPadding, Right: client.Right - aboutPadding, Bottom: 10000}
+	_ = winapi.DrawText(dc, a.text, &measure, winapi.DTCenter|winapi.DTWordBreak|winapi.DTNoPrefix|winapi.DTCalcRect)
+	imageRect, textRect := layoutAbout(client, measure.Bottom, a.image != 0)
+
+	if a.image != 0 && imageRect.Right > imageRect.Left && imageRect.Bottom > imageRect.Top {
+		_ = winapi.GdipDrawImageRect(dc, a.image, imageRect.Left, imageRect.Top, imageRect.Right-imageRect.Left, imageRect.Bottom-imageRect.Top)
 	}
 	_ = winapi.DrawText(dc, a.text, &textRect, winapi.DTCenter|winapi.DTWordBreak|winapi.DTNoPrefix)
+}
+
+func layoutAbout(client winapi.Rect, textHeight int32, hasImage bool) (image, text winapi.Rect) {
+	text.Left, text.Right = aboutPadding, client.Right-aboutPadding
+	text.Top, text.Bottom = aboutPadding, client.Bottom-aboutPadding
+	if !hasImage {
+		return image, text
+	}
+
+	availableHeight := client.Bottom - 2*aboutPadding - aboutImageGap - textHeight
+	imageHeight := min(aboutImageHeight, max(int32(0), availableHeight))
+	imageWidth := imageHeight * aboutImageWidth / aboutImageHeight
+	if maxWidth := client.Right - 2*aboutPadding; imageWidth > maxWidth {
+		imageWidth = max(int32(0), maxWidth)
+		imageHeight = imageWidth * aboutImageHeight / aboutImageWidth
+	}
+	image.Left = (client.Right - imageWidth) / 2
+	image.Top = aboutPadding
+	image.Right = image.Left + imageWidth
+	image.Bottom = image.Top + imageHeight
+	text.Top = image.Bottom + aboutImageGap
+	return image, text
 }

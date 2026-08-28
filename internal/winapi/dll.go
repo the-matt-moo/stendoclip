@@ -56,6 +56,7 @@ var (
 	procShowWindow                    = user32.NewProc("ShowWindow")
 	procIsWindowVisible               = user32.NewProc("IsWindowVisible")
 	procSetWindowPos                  = user32.NewProc("SetWindowPos")
+	procSetProcessDpiAwarenessContext = user32.NewProc("SetProcessDpiAwarenessContext")
 	procInvalidateRect                = user32.NewProc("InvalidateRect")
 	procGetClientRect                 = user32.NewProc("GetClientRect")
 	procSetTimer                      = user32.NewProc("SetTimer")
@@ -243,6 +244,15 @@ func SetWindowPos(hwnd, insertAfter HWND, x, y, width, height int32, flags uint3
 		return syscallError("SetWindowPos", callErr)
 	}
 	return nil
+}
+
+// EnablePerMonitorDPI also covers development builds, which do not embed the release manifest.
+func EnablePerMonitorDPI() error {
+	r, _, callErr := procSetProcessDpiAwarenessContext.Call(^uintptr(3)) // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+	if r != 0 || callErr == windows.ERROR_ACCESS_DENIED {                // Manifest already set it.
+		return nil
+	}
+	return syscallError("SetProcessDpiAwarenessContext", callErr)
 }
 
 func InvalidateRect(hwnd HWND) {

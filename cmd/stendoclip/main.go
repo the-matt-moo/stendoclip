@@ -19,7 +19,8 @@ import (
 	"github.com/mooreceipts/stendoclip/internal/winapi"
 )
 
-var version = "dev"
+// version is overridden from VERSION by the Makefile for release builds.
+var version = "1.0.3"
 
 const openHotkeyID = 1
 
@@ -34,6 +35,10 @@ func resolveKeys(settings config.Config) (config.Keys, overlay.KeyBindings, erro
 func main() {
 	unlock := app.LockMainThread()
 	defer unlock()
+	if err := winapi.EnablePerMonitorDPI(); err != nil {
+		winapi.MessageBox("Stendoclip", err.Error())
+		return
+	}
 
 	instance, alreadyRunning, err := app.AcquireInstance()
 	if err != nil {

@@ -1,11 +1,11 @@
 APP := stendoclip
-VERSION ?= $(shell cat VERSION 2>/dev/null || echo dev)
+VERSION := $(shell cat VERSION 2>/dev/null || echo dev)
 LDFLAGS := -X main.version=$(VERSION)
 RSRC := github.com/akavel/rsrc@v0.10.2
 
 .PHONY: build test run resources clean
 
-build: resources
+build:
 	go build -trimpath -ldflags "-s -w -H=windowsgui $(LDFLAGS)" -o $(APP).exe ./cmd/stendoclip
 
 test:

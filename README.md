@@ -43,13 +43,10 @@ Right-click the tray icon, select **Export history to Markdown...**, then choose
 Requires Go 1.23 or newer.
 
 ```sh
-make test
 make build
-make run
-make release
 ```
 
-`make release` produces a GUI-subsystem `stendoclip.exe`. Version metadata comes from `VERSION` and is embedded with `-ldflags`. Run `make resources` only after replacing the `.ico`; it regenerates committed 386 and amd64 Windows resources.
+`make build` produces a GUI-subsystem `stendoclip.exe`; `make` is equivalent. Version metadata comes from `VERSION` and is embedded with `-ldflags`. Use `make test` to run tests or `make run` to run from source. Run `make resources` only after changing an icon or the manifest; it regenerates committed 386 and amd64 Windows resources.
 
 ## Configuration
 
