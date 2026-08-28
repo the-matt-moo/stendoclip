@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 27-08-2026
+
+### Added
+- Clipboard self-ownership skip: ignores own paste writes via `GetClipboardOwner`, preventing feedback loops when paste re-enters the clipboard
+- 100ms rapid-change debounce: coalesces burst clipboard notifications, reducing flicker and spurious capture
+
+### Changed
+- DPI per-monitor v2 manifest regenerated with Win10/11 compatibility GUIDs embedded via `rsrc`
+
 ## [1.0.2] - 27-08-2026
 
 ### Changed
