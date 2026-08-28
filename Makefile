@@ -1,5 +1,5 @@
 APP := stendoclip
-VERSION := $(shell cat VERSION 2>/dev/null || echo dev)
+VERSION := $(shell type VERSION 2>NUL || echo dev)
 LDFLAGS := -X main.version=$(VERSION)
 RSRC := github.com/akavel/rsrc@v0.10.2
 
