@@ -23,6 +23,7 @@ type Config struct {
 	PasteDelayMs       int    `json:"paste_delay_ms"`
 	TimeoutSecs        int    `json:"timeout_secs"`
 	Wraparound         bool   `json:"wraparound"`
+	TrimWhitespace     bool   `json:"trim_whitespace"`
 	DebugLog           bool   `json:"debug_log"`
 	HotkeyOpen         string `json:"hotkey_open"`
 	HotkeyPin          string `json:"hotkey_pin"`
@@ -130,6 +131,17 @@ func UpdateFontSize(path string, newSize int) error {
 		newSize = 48
 	}
 	cfg.BezelFontSize = newSize
+	return SaveConfig(path, cfg)
+}
+
+func UpdateTrimWhitespace(path string, enabled bool) error {
+	cfg, err := LoadConfig(path)
+	if errors.Is(err, os.ErrNotExist) {
+		cfg = Defaults()
+	} else if err != nil {
+		return err
+	}
+	cfg.TrimWhitespace = enabled
 	return SaveConfig(path, cfg)
 }
 

@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.4] - 28-08-2026
+## [1.0.6] - 30-08-2026
+
+### Added
+- Tray menu toggle to trim leading/trailing whitespace from captured and pasted clips
+
+### Fixed
+- Blank/whitespace-only clipboard text is now ignored, so empty clips are neither stored nor pasted
+
+## [1.0.5] - 30-08-2026
 
 ### Fixed
 - About window can now be reopened repeatedly without restarting Stendoclip

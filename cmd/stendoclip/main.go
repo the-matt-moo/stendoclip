@@ -20,7 +20,7 @@ import (
 )
 
 // version is overridden from VERSION by the Makefile for release builds.
-var version = "1.0.3"
+var version = "1.0.6"
 
 const openHotkeyID = 1
 
@@ -101,7 +101,7 @@ func main() {
 	}
 	defer application.Close()
 
-	capture, err := clipboard.NewMonitor(application.Window(), clips, historyPath, settings.MaxEntryBytes)
+	capture, err := clipboard.NewMonitor(application.Window(), clips, historyPath, settings.MaxEntryBytes, settings.TrimWhitespace)
 	if err != nil {
 		winapi.MessageBox("Stendoclip", err.Error())
 		return
@@ -129,7 +129,7 @@ func main() {
 
 	paster := paste.New(application.Window(), time.Duration(settings.PasteDelayMs)*time.Millisecond, application.Post, func(err error) {
 		log.Error("paste failed: %v", err)
-	})
+	}, settings.TrimWhitespace)
 	bezel, err := overlay.New(
 		clips, historyPath, bindings, time.Duration(settings.TimeoutSecs)*time.Second, settings.Wraparound,
 		int32(settings.BezelFontSize),
@@ -170,7 +170,7 @@ func main() {
 	}
 
 	systemTray, err := tray.New(
-		application.Window(), assets.WatergunIcon, assets.CowImage, clips, historyPath, markdownExportPath, configPath, executable, version, settings.BezelFontSize, paster.Execute,
+		application.Window(), assets.WatergunIcon, assets.CowImage, clips, historyPath, markdownExportPath, configPath, executable, version, settings.BezelFontSize, settings.TrimWhitespace, paster.Execute,
 		func(value bool) {
 			paused = value
 			log.Info("capture paused: %v", value)
@@ -178,6 +178,11 @@ func main() {
 		func(size int) {
 			bezel.SetFontSize(int32(size))
 			log.Info("font size changed to %d", size)
+		},
+		func(enabled bool) {
+			capture.SetTrimWhitespace(enabled)
+			paster.SetTrimWhitespace(enabled)
+			log.Info("trim whitespace: %v", enabled)
 		},
 		application.Quit,
 		func(err error) { log.Error("tray failed: %v", err) },
@@ -207,6 +212,9 @@ func main() {
 
 			// Paste delay.
 			paster.SetDelay(time.Duration(cfg.PasteDelayMs) * time.Millisecond)
+			capture.SetTrimWhitespace(cfg.TrimWhitespace)
+			paster.SetTrimWhitespace(cfg.TrimWhitespace)
+			systemTray.SetTrimWhitespace(cfg.TrimWhitespace)
 
 			// Bezel settings.
 			bezel.SetTimeout(time.Duration(cfg.TimeoutSecs) * time.Second)

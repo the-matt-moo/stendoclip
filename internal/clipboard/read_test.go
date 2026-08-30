@@ -21,4 +21,7 @@ func TestDecodeText(t *testing.T) {
 	if _, err := decodeText([]uint16{0}, 64); !errors.Is(err, ErrNoText) {
 		t.Fatalf("expected ErrNoText, got %v", err)
 	}
+	if _, err := decodeText(utf16.Encode([]rune(" \n\t ")), 64); !errors.Is(err, ErrNoText) {
+		t.Fatalf("expected blank text to be ignored, got %v", err)
+	}
 }

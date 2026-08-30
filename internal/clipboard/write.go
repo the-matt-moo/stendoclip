@@ -2,6 +2,7 @@ package clipboard
 
 import (
 	"encoding/binary"
+	"strings"
 
 	"golang.org/x/sys/windows"
 
@@ -9,6 +10,9 @@ import (
 )
 
 func WriteText(hwnd winapi.HWND, text string) (err error) {
+	if strings.TrimSpace(text) == "" {
+		return ErrNoText
+	}
 	encoded, err := windows.UTF16FromString(text)
 	if err != nil {
 		return err

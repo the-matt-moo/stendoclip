@@ -1,6 +1,7 @@
 package store
 
 import (
+	"strings"
 	"sync"
 	"time"
 )
@@ -41,7 +42,7 @@ func (s *ClippingStack) Push(text string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initDefaults()
-	if len([]byte(text)) > s.maxBytes {
+	if isBlankText(text) || len([]byte(text)) > s.maxBytes {
 		return false
 	}
 
@@ -183,4 +184,8 @@ func (s *ClippingStack) trimLocked() {
 	if len(s.history) > s.maxSize {
 		s.history = s.history[:s.maxSize]
 	}
+}
+
+func isBlankText(text string) bool {
+	return len(strings.TrimSpace(text)) == 0
 }

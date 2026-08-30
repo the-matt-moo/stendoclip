@@ -3,6 +3,7 @@ package clipboard
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mooreceipts/stendoclip/internal/store"
@@ -12,21 +13,22 @@ import (
 const debounceInterval = 100 * time.Millisecond
 
 type Monitor struct {
-	hwnd        winapi.HWND
-	stack       *store.ClippingStack
-	historyPath string
-	maxBytes    int
-	formats     sensitiveFormats
-	started     bool
-	lastCapture time.Time
+	hwnd           winapi.HWND
+	stack          *store.ClippingStack
+	historyPath    string
+	maxBytes       int
+	trimWhitespace bool
+	formats        sensitiveFormats
+	started        bool
+	lastCapture    time.Time
 }
 
-func NewMonitor(hwnd winapi.HWND, stack *store.ClippingStack, historyPath string, maxBytes int) (*Monitor, error) {
+func NewMonitor(hwnd winapi.HWND, stack *store.ClippingStack, historyPath string, maxBytes int, trimWhitespace bool) (*Monitor, error) {
 	formats, err := registerSensitiveFormats()
 	if err != nil {
 		return nil, err
 	}
-	return &Monitor{hwnd: hwnd, stack: stack, historyPath: historyPath, maxBytes: maxBytes, formats: formats}, nil
+	return &Monitor{hwnd: hwnd, stack: stack, historyPath: historyPath, maxBytes: maxBytes, trimWhitespace: trimWhitespace, formats: formats}, nil
 }
 
 func (m *Monitor) Start() error {
@@ -41,6 +43,8 @@ func (m *Monitor) Start() error {
 }
 
 func (m *Monitor) SetMaxBytes(n int) { m.maxBytes = n }
+
+func (m *Monitor) SetTrimWhitespace(enabled bool) { m.trimWhitespace = enabled }
 
 func (m *Monitor) Capture() error {
 	// Skip our own clipboard writes.
@@ -60,6 +64,9 @@ func (m *Monitor) Capture() error {
 	}
 	if err != nil {
 		return fmt.Errorf("read clipboard: %w", err)
+	}
+	if m.trimWhitespace {
+		text = strings.TrimSpace(text)
 	}
 	if !m.stack.Push(text) {
 		return nil

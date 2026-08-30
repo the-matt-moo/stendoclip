@@ -18,9 +18,10 @@ const (
 	startupID  = 3003
 	aboutID    = 3004
 	exportID   = 3005
+	trimID     = 3006
 	incFontID  = 3007
 	decFontID  = 3008
-	quitID     = 3006
+	quitID     = 3009
 	menuLimit  = 10
 )
 
@@ -126,6 +127,13 @@ func (t *Tray) buildMenu() (state menuState, err error) {
 	if err = winapi.AppendMenu(state.menu, winapi.MFSeparator, 0, ""); err != nil {
 		return state, err
 	}
+	trimFlags := uint32(winapi.MFString)
+	if t.trimWhitespace {
+		trimFlags |= winapi.MFChecked
+	}
+	if err = winapi.AppendMenu(state.menu, trimFlags, trimID, "Trim leading/trailing whitespace"); err != nil {
+		return state, err
+	}
 	if err = winapi.AppendMenu(state.menu, winapi.MFString, exportID, "Export history to Markdown..."); err != nil {
 		return state, err
 	}
@@ -159,6 +167,12 @@ func (t *Tray) runCommand(command uint32, state menuState, target winapi.HWND) {
 			err = setStartup(t.executable, !enabled)
 		}
 		t.report(err)
+	case command == trimID:
+		t.trimWhitespace = !t.trimWhitespace
+		if t.onTrimChange != nil {
+			t.onTrimChange(t.trimWhitespace)
+		}
+		t.report(config.UpdateTrimWhitespace(t.configPath, t.trimWhitespace))
 	case command == exportID:
 		path := t.markdownExportPath
 		if path == "" {

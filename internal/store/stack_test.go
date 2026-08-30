@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -60,23 +61,28 @@ func TestCycleWraparound(t *testing.T) {
 func TestDefaultCapEvictsOldest(t *testing.T) {
 	s := New()
 	for i := 0; i < 51; i++ {
-		s.Push(string(rune(i + 1)))
+		s.Push(fmt.Sprintf("clip-%d", i))
 	}
 	if s.Len() != 50 {
 		t.Fatalf("len = %d, want 50", s.Len())
 	}
-	if s.Get(49).Text == string(rune(1)) {
+	if s.Get(49).Text == "clip-0" {
 		t.Fatal("oldest entry was not evicted")
 	}
 }
 
-func TestRejectsEntryOver64KB(t *testing.T) {
+func TestRejectsBlankOrOversizedEntries(t *testing.T) {
 	s := New()
+	for _, text := range []string{"", " \n\t "} {
+		if s.Push(text) {
+			t.Fatalf("blank entry %q accepted", text)
+		}
+	}
 	if s.Push(strings.Repeat("x", 65537)) {
 		t.Fatal("oversized entry accepted")
 	}
 	if s.Len() != 0 {
-		t.Fatalf("len = %d after oversized push", s.Len())
+		t.Fatalf("len = %d after rejected pushes", s.Len())
 	}
 }
 

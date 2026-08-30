@@ -26,7 +26,9 @@ type Tray struct {
 	markdownExportPath string
 	configPath         string
 	currentFontSize    int
+	trimWhitespace     bool
 	onFontSizeChange   func(int)
+	onTrimChange       func(bool)
 	executable         string
 	version            string
 	paste              func(winapi.HWND, string) error
@@ -38,7 +40,7 @@ type Tray struct {
 	taskbarMessage     uint32
 }
 
-func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingStack, historyPath, markdownExportPath, configPath, executable, version string, currentFontSize int, paste func(winapi.HWND, string) error, onPause func(bool), onFontSizeChange func(int), onQuit func() error, onError func(error)) (*Tray, error) {
+func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingStack, historyPath, markdownExportPath, configPath, executable, version string, currentFontSize int, trimWhitespace bool, paste func(winapi.HWND, string) error, onPause func(bool), onFontSizeChange func(int), onTrimChange func(bool), onQuit func() error, onError func(error)) (*Tray, error) {
 	instance, err := winapi.GetModuleHandle()
 	if err != nil {
 		return nil, err
@@ -54,7 +56,7 @@ func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingSta
 	}
 	tray := &Tray{
 		hwnd: hwnd, instance: instance, icon: icon, aboutImage: aboutImage,
-		stack: stack, historyPath: historyPath, markdownExportPath: markdownExportPath, configPath: configPath, currentFontSize: currentFontSize, onFontSizeChange: onFontSizeChange, executable: executable, version: version,
+		stack: stack, historyPath: historyPath, markdownExportPath: markdownExportPath, configPath: configPath, currentFontSize: currentFontSize, trimWhitespace: trimWhitespace, onFontSizeChange: onFontSizeChange, onTrimChange: onTrimChange, executable: executable, version: version,
 		paste: paste, onPause: onPause, onQuit: onQuit, onError: onError, taskbarMessage: taskbarMessage,
 	}
 	if err := tray.addIcon(); err != nil {
@@ -114,6 +116,8 @@ func (t *Tray) addIcon() error {
 func (t *Tray) SetMarkdownExportPath(path string) { t.markdownExportPath = path }
 
 func (t *Tray) SetFontSize(size int) { t.currentFontSize = size }
+
+func (t *Tray) SetTrimWhitespace(enabled bool) { t.trimWhitespace = enabled }
 
 func (t *Tray) Close() error {
 	var result error

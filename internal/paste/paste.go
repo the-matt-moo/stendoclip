@@ -2,6 +2,7 @@ package paste
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mooreceipts/stendoclip/internal/clipboard"
@@ -9,17 +10,20 @@ import (
 )
 
 type Executor struct {
-	hwnd    winapi.HWND
-	delay   time.Duration
-	post    func(func()) error
-	onError func(error)
+	hwnd           winapi.HWND
+	delay          time.Duration
+	post           func(func()) error
+	onError        func(error)
+	trimWhitespace bool
 }
 
-func New(hwnd winapi.HWND, delay time.Duration, post func(func()) error, onError func(error)) *Executor {
-	return &Executor{hwnd: hwnd, delay: delay, post: post, onError: onError}
+func New(hwnd winapi.HWND, delay time.Duration, post func(func()) error, onError func(error), trimWhitespace bool) *Executor {
+	return &Executor{hwnd: hwnd, delay: delay, post: post, onError: onError, trimWhitespace: trimWhitespace}
 }
 
 func (e *Executor) SetDelay(delay time.Duration) { e.delay = delay }
+
+func (e *Executor) SetTrimWhitespace(enabled bool) { e.trimWhitespace = enabled }
 
 func (e *Executor) Execute(target winapi.HWND, text string) error {
 	if target == 0 {
@@ -27,6 +31,12 @@ func (e *Executor) Execute(target winapi.HWND, text string) error {
 	}
 	if err := winapi.SetForegroundWindow(target); err != nil {
 		return fmt.Errorf("restore paste target: %w", err)
+	}
+	if e.trimWhitespace {
+		text = strings.TrimSpace(text)
+		if text == "" {
+			return nil
+		}
 	}
 	if err := clipboard.WriteText(e.hwnd, text); err != nil {
 		return fmt.Errorf("write selected clip: %w", err)

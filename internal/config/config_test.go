@@ -9,7 +9,7 @@ import (
 func TestDefaults(t *testing.T) {
 	got := Defaults()
 	if got.MaxHistory != 50 || got.MaxEntryBytes != 65536 || got.PasteDelayMs != 200 ||
-		got.TimeoutSecs != 5 || !got.Wraparound || got.DebugLog ||
+		got.TimeoutSecs != 5 || !got.Wraparound || got.TrimWhitespace || got.DebugLog ||
 		got.HotkeyOpen != "Ctrl+Shift+V" || got.HotkeyPin != "Ctrl+P" || got.HistoryPath != "" ||
 		got.BezelFontSize != 18 {
 		t.Fatalf("unexpected defaults: %#v", got)
@@ -28,8 +28,22 @@ func TestPartialJSONMergesDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.MaxHistory != 75 || !got.DebugLog || got.MaxEntryBytes != 65536 || got.HotkeyOpen != "Ctrl+Shift+V" || !got.Wraparound {
+	if got.MaxHistory != 75 || !got.DebugLog || got.MaxEntryBytes != 65536 || got.HotkeyOpen != "Ctrl+Shift+V" || !got.Wraparound || got.TrimWhitespace {
 		t.Fatalf("partial merge = %#v", got)
+	}
+}
+
+func TestTrimWhitespaceFromJSON(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(path, []byte(`{"trim_whitespace":true}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.TrimWhitespace {
+		t.Fatalf("trim flag = %#v", got)
 	}
 }
 

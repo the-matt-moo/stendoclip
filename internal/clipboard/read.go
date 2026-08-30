@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/sys/windows"
@@ -69,7 +70,7 @@ func decodeText(units []uint16, maxBytes int) (string, error) {
 		end++
 	}
 	text := windows.UTF16ToString(units[:end])
-	if text == "" {
+	if strings.TrimSpace(text) == "" {
 		return "", ErrNoText
 	}
 	if len([]byte(text)) > maxBytes {

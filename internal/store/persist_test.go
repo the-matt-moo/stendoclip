@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestPersistenceRoundTrip(t *testing.T) {
@@ -70,6 +71,22 @@ func TestLoadEmptyFile(t *testing.T) {
 	got, err := Load(path)
 	if err != nil || got.Len() != 0 {
 		t.Fatalf("Load empty = len %d, err %v", got.Len(), err)
+	}
+}
+
+func TestLoadDropsBlankEntries(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.json")
+	if err := (HistoryFile{
+		History: []Entry{{Text: "", Timestamp: time.Now()}, {Text: "one", Timestamp: time.Now()}},
+	}).Save(path); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Len() != 1 || got.Get(0).Text != "one" {
+		t.Fatalf("loaded stack: %#v", got.HistoryEntries())
 	}
 }
 

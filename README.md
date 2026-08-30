@@ -24,6 +24,7 @@ Right-click the watergun tray icon to:
 - Pause capture
 - Clear unpinned clips
 - **Increase or decrease font size** (persisted to `config.json`)
+- **Trim leading/trailing whitespace** from clips (persisted to `config.json`)
 - Toggle Start with Windows
 - Open the About window for version and project information; reopen it whenever needed
 - Quit
@@ -60,6 +61,7 @@ Configuration is JSON. Unspecified fields retain these defaults:
 | `timeout_secs` | `5` | Selection overlay timeout |
 | `wraparound` | `true` | Wrap when cycling entries |
 | `debug_log` | `false` | Enable debug messages |
+| `trim_whitespace` | `false` | Trim leading/trailing whitespace on capture and paste |
 | `hotkey_open` | `Ctrl+Shift+V` | Open the bezel or cycle clips (legacy; prefer `keys.open`) |
 | `hotkey_pin` | `Ctrl+P` | Pin selected entry (legacy; prefer `keys.pin`) |
 | `history_path` | `""` | Custom clipboard-history file path |
@@ -78,6 +80,7 @@ Configuration lives at `%AppData%\\Stendoclip\\config.json`.
 | `timeout_secs` | yes | Bezel auto-close timeout |
 | `wraparound` | yes | Wrap clip navigation |
 | `debug_log` | yes | Extra logging |
+| `trim_whitespace` | yes | Trim leading/trailing whitespace on capture and paste |
 | `bezel_font_size` | yes | Bezel text size in pixels, range 12–48 |
 | `keys` | yes | Full key-binding override for bezel actions |
 | `hotkey_open` / `hotkey_pin` | yes | Legacy single-hotkey fallback only |
@@ -98,6 +101,7 @@ Example:
   "timeout_secs": 8,
   "wraparound": false,
   "debug_log": true,
+  "trim_whitespace": true,
   "bezel_font_size": 22,
   "history_path": "C:\\Users\\me\\Documents\\stendoclip-history.json",
   "markdown_export_path": "C:\\Users\\me\\Obsidian\\Clipboard History.md",
@@ -114,6 +118,8 @@ Example:
 
 Stendoclip captures `CF_UNICODETEXT` only:
 - **Images, files, formatted content**: silently ignored (no-op, not stored)
+- **Blank/whitespace-only text**: ignored, not stored or pasted
+- **Trimmed whitespace mode**: optionally strips leading/trailing spaces, tabs, and newlines when enabled from the tray menu or `config.json`
 - **Text larger than `max_entry_bytes`**: rejected, not stored
 - **Clips marked sensitive**: Windows/KeePass privacy formats are detected and ignored
 
@@ -156,6 +162,7 @@ When `keys` is present, the legacy `hotkey_open` and `hotkey_pin` fields are ign
 **What happens when I copy an image or file?**
 
 - Stendoclip ignores non-text content silently. Only plain Unicode text (`CF_UNICODETEXT`) is captured. Images, files, formatted text, and other formats are discarded without logging (unless `debug_log: true`).
+- If `trim_whitespace` is enabled, leading/trailing spaces, tabs, and newlines are stripped before storing and pasting.
 
 **Where are my clips stored?**
 
