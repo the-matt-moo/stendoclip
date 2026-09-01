@@ -31,6 +31,7 @@ type Tray struct {
 	onTrimChange       func(bool)
 	executable         string
 	version            string
+	aboutText          string
 	paste              func(winapi.HWND, string) error
 	onPause            func(bool)
 	onQuit             func() error
@@ -40,7 +41,7 @@ type Tray struct {
 	taskbarMessage     uint32
 }
 
-func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingStack, historyPath, markdownExportPath, configPath, executable, version string, currentFontSize int, trimWhitespace bool, paste func(winapi.HWND, string) error, onPause func(bool), onFontSizeChange func(int), onTrimChange func(bool), onQuit func() error, onError func(error)) (*Tray, error) {
+func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingStack, historyPath, markdownExportPath, configPath, executable, version, aboutText string, currentFontSize int, trimWhitespace bool, paste func(winapi.HWND, string) error, onPause func(bool), onFontSizeChange func(int), onTrimChange func(bool), onQuit func() error, onError func(error)) (*Tray, error) {
 	instance, err := winapi.GetModuleHandle()
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func New(hwnd winapi.HWND, iconData, aboutImage []byte, stack *store.ClippingSta
 	}
 	tray := &Tray{
 		hwnd: hwnd, instance: instance, icon: icon, aboutImage: aboutImage,
-		stack: stack, historyPath: historyPath, markdownExportPath: markdownExportPath, configPath: configPath, currentFontSize: currentFontSize, trimWhitespace: trimWhitespace, onFontSizeChange: onFontSizeChange, onTrimChange: onTrimChange, executable: executable, version: version,
+		stack: stack, historyPath: historyPath, markdownExportPath: markdownExportPath, configPath: configPath, currentFontSize: currentFontSize, trimWhitespace: trimWhitespace, onFontSizeChange: onFontSizeChange, onTrimChange: onTrimChange, executable: executable, version: version, aboutText: aboutText,
 		paste: paste, onPause: onPause, onQuit: onQuit, onError: onError, taskbarMessage: taskbarMessage,
 	}
 	if err := tray.addIcon(); err != nil {
@@ -114,6 +115,16 @@ func (t *Tray) addIcon() error {
 }
 
 func (t *Tray) SetMarkdownExportPath(path string) { t.markdownExportPath = path }
+
+func (t *Tray) SetAboutText(text string) {
+	t.aboutText = text
+	activeAboutMu.Lock()
+	if activeAbout != nil && activeAbout.hwnd != 0 {
+		activeAbout.text = text
+		winapi.InvalidateRect(activeAbout.hwnd)
+	}
+	activeAboutMu.Unlock()
+}
 
 func (t *Tray) SetFontSize(size int) { t.currentFontSize = size }
 

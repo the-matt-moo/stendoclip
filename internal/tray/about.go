@@ -13,7 +13,7 @@ import (
 
 const (
 	aboutWidth       = 440
-	aboutHeight      = 440
+	aboutHeight      = 520
 	aboutPadding     = 16
 	aboutImageWidth  = 256
 	aboutImageHeight = 145 // 920:521 aspect ratio
@@ -66,7 +66,7 @@ func getAboutClass(instance winapi.HINSTANCE) (*uint16, error) {
 	return aboutClassName, nil
 }
 
-func showAbout(ownerInstance winapi.HINSTANCE, imageData []byte, version string) {
+func showAbout(ownerInstance winapi.HINSTANCE, imageData []byte, text string) {
 	activeAboutMu.Lock()
 	if activeAbout != nil {
 		hwnd := activeAbout.hwnd
@@ -89,10 +89,7 @@ func showAbout(ownerInstance winapi.HINSTANCE, imageData []byte, version string)
 
 	about := &aboutWindow{
 		image: image,
-		text: fmt.Sprintf(
-			"Stendoclip %s\n\nKeyboard-first clipboard manager for Windows.\n\nCreated by Matt Moo\nLicense: MIT\nhttps://github.com/the-matt-moo/stendoclip",
-			version,
-		),
+		text:  text,
 	}
 
 	activeAboutMu.Lock()

@@ -192,7 +192,7 @@ func (t *Tray) runCommand(command uint32, state menuState, target winapi.HWND) {
 	case command == decFontID:
 		t.adjustFontSize(-2)
 	case command == aboutID:
-		showAbout(t.instance, t.aboutImage, t.version)
+		showAbout(t.instance, t.aboutImage, t.aboutText)
 	case command == quitID:
 		if t.onQuit != nil {
 			t.report(t.onQuit())

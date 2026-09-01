@@ -26,7 +26,7 @@ Right-click the watergun tray icon to:
 - **Increase or decrease font size** (persisted to `config.json`)
 - **Trim leading/trailing whitespace** from clips (persisted to `config.json`)
 - Toggle Start with Windows
-- Open the About window for version and project information; reopen it whenever needed
+- Open the About window for version, project info, and current keybindings; it updates on config reload
 - Quit
 
 The icon is embedded in both the tray and compiled executable from `assets/watergun_icon.ico`, so no external asset file is required at runtime.

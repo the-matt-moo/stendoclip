@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/mooreceipts/stendoclip/assets"
@@ -20,7 +22,7 @@ import (
 )
 
 // version is overridden from VERSION by the Makefile for release builds.
-var version = "1.0.6"
+var version = "1.0.8"
 
 const openHotkeyID = 1
 
@@ -30,6 +32,27 @@ func resolveKeys(settings config.Config) (config.Keys, overlay.KeyBindings, erro
 		keys.Previous, keys.Next, keys.Paste, keys.Cancel, keys.Delete, keys.Pin,
 	)
 	return keys, bindings, err
+}
+
+func buildAboutText(version string, keys config.Keys) string {
+	return strings.Join([]string{
+		fmt.Sprintf("Stendoclip %s", version),
+		"",
+		"Keyboard-first clipboard manager for Windows.",
+		"",
+		"Keybindings:",
+		"Open bezel: " + keys.Open[0],
+		"Previous clip: " + strings.Join(keys.Previous, " / "),
+		"Next clip: " + strings.Join(keys.Next, " / "),
+		"Paste clip: " + strings.Join(keys.Paste, " / "),
+		"Cancel: " + strings.Join(keys.Cancel, " / "),
+		"Delete clip: " + strings.Join(keys.Delete, " / "),
+		"Pin clip: " + strings.Join(keys.Pin, " / "),
+		"",
+		"Created by Matt Moo",
+		"License: MIT",
+		"https://github.com/the-matt-moo/stendoclip",
+	}, "\n")
 }
 
 func main() {
@@ -126,6 +149,7 @@ func main() {
 		winapi.MessageBox("Stendoclip", err.Error())
 		return
 	}
+	aboutText := buildAboutText(version, keys)
 
 	paster := paste.New(application.Window(), time.Duration(settings.PasteDelayMs)*time.Millisecond, application.Post, func(err error) {
 		log.Error("paste failed: %v", err)
@@ -170,7 +194,7 @@ func main() {
 	}
 
 	systemTray, err := tray.New(
-		application.Window(), assets.WatergunIcon, assets.CowImage, clips, historyPath, markdownExportPath, configPath, executable, version, settings.BezelFontSize, settings.TrimWhitespace, paster.Execute,
+		application.Window(), assets.WatergunIcon, assets.CowImage, clips, historyPath, markdownExportPath, configPath, executable, version, aboutText, settings.BezelFontSize, settings.TrimWhitespace, paster.Execute,
 		func(value bool) {
 			paused = value
 			log.Info("capture paused: %v", value)
@@ -229,6 +253,7 @@ func main() {
 			} else {
 				bezel.SetBindings(newBindings)
 			}
+			systemTray.SetAboutText(buildAboutText(version, cfg.ResolvedKeys()))
 
 			// Global hotkey re-register.
 			newKeys := cfg.ResolvedKeys()
