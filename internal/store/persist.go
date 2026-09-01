@@ -50,8 +50,8 @@ func Load(path string) (*ClippingStack, error) {
 		return nil, err
 	}
 	stack := New()
-	stack.history = filterEmptyEntries(file.History)
-	stack.pins = filterEmptyEntries(file.Pins)
+	stack.history = filterBlankClips(file.History)
+	stack.pins = filterBlankClips(file.Pins)
 	for i := range stack.history {
 		stack.history[i].Pinned = false
 	}
@@ -61,10 +61,10 @@ func Load(path string) (*ClippingStack, error) {
 	return stack, nil
 }
 
-func filterEmptyEntries(entries []Entry) []Entry {
+func filterBlankClips(entries []Entry) []Entry {
 	filtered := make([]Entry, 0, len(entries))
 	for _, entry := range entries {
-		if isBlankText(entry.Text) {
+		if IsBlankClip(entry.Text) {
 			continue
 		}
 		filtered = append(filtered, entry)

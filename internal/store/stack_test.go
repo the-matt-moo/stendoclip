@@ -71,7 +71,7 @@ func TestDefaultCapEvictsOldest(t *testing.T) {
 	}
 }
 
-func TestRejectsBlankOrOversizedEntries(t *testing.T) {
+func TestRejectsBlankOrOversizedClips(t *testing.T) {
 	s := New()
 	for _, text := range []string{"", " \n\t "} {
 		if s.Push(text) {

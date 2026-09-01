@@ -2,15 +2,15 @@ package clipboard
 
 import (
 	"encoding/binary"
-	"strings"
 
 	"golang.org/x/sys/windows"
 
+	"github.com/mooreceipts/stendoclip/internal/store"
 	"github.com/mooreceipts/stendoclip/internal/winapi"
 )
 
 func WriteText(hwnd winapi.HWND, text string) (err error) {
-	if strings.TrimSpace(text) == "" {
+	if store.IsBlankClip(text) {
 		return ErrNoText
 	}
 	encoded, err := windows.UTF16FromString(text)

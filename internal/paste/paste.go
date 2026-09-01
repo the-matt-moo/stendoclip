@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mooreceipts/stendoclip/internal/clipboard"
+	"github.com/mooreceipts/stendoclip/internal/store"
 	"github.com/mooreceipts/stendoclip/internal/winapi"
 )
 
@@ -34,7 +35,7 @@ func (e *Executor) Execute(target winapi.HWND, text string) error {
 	}
 	if e.trimWhitespace {
 		text = strings.TrimSpace(text)
-		if text == "" {
+		if store.IsBlankClip(text) {
 			return nil
 		}
 	}

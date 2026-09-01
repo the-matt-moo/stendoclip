@@ -3,7 +3,6 @@ package clipboard
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/mooreceipts/stendoclip/internal/store"
@@ -58,15 +57,12 @@ func (m *Monitor) Capture() error {
 	}
 	m.lastCapture = now
 
-	text, err := ReadText(m.hwnd, m.maxBytes, m.formats)
+	text, err := ReadText(m.hwnd, m.maxBytes, m.formats, m.trimWhitespace)
 	if errors.Is(err, ErrNoText) || errors.Is(err, ErrSensitive) || errors.Is(err, ErrTooLarge) {
 		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("read clipboard: %w", err)
-	}
-	if m.trimWhitespace {
-		text = strings.TrimSpace(text)
 	}
 	if !m.stack.Push(text) {
 		return nil

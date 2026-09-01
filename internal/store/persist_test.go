@@ -74,7 +74,7 @@ func TestLoadEmptyFile(t *testing.T) {
 	}
 }
 
-func TestLoadDropsBlankEntries(t *testing.T) {
+func TestLoadDropsBlankClips(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "history.json")
 	if err := (HistoryFile{
 		History: []Entry{{Text: "", Timestamp: time.Now()}, {Text: "one", Timestamp: time.Now()}},

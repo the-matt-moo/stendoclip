@@ -42,7 +42,7 @@ func (s *ClippingStack) Push(text string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.initDefaults()
-	if isBlankText(text) || len([]byte(text)) > s.maxBytes {
+	if IsBlankClip(text) || len([]byte(text)) > s.maxBytes {
 		return false
 	}
 
@@ -186,6 +186,6 @@ func (s *ClippingStack) trimLocked() {
 	}
 }
 
-func isBlankText(text string) bool {
+func IsBlankClip(text string) bool {
 	return len(strings.TrimSpace(text)) == 0
 }

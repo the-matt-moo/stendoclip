@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
+	"github.com/mooreceipts/stendoclip/internal/store"
 	"github.com/mooreceipts/stendoclip/internal/winapi"
 )
 
@@ -18,7 +19,7 @@ var (
 	ErrTooLarge  = errors.New("clipboard text exceeds size limit")
 )
 
-func ReadText(hwnd winapi.HWND, maxBytes int, formats sensitiveFormats) (text string, err error) {
+func ReadText(hwnd winapi.HWND, maxBytes int, formats sensitiveFormats, trim bool) (text string, err error) {
 	if maxBytes < 1 {
 		maxBytes = 65536
 	}
@@ -61,16 +62,19 @@ func ReadText(hwnd winapi.HWND, maxBytes int, formats sensitiveFormats) (text st
 	for i := range units {
 		units[i] = binary.LittleEndian.Uint16(data[i*2:])
 	}
-	return decodeText(units, maxBytes)
+	return decodeText(units, maxBytes, trim)
 }
 
-func decodeText(units []uint16, maxBytes int) (string, error) {
+func decodeText(units []uint16, maxBytes int, trim bool) (string, error) {
 	end := 0
 	for end < len(units) && units[end] != 0 {
 		end++
 	}
 	text := windows.UTF16ToString(units[:end])
-	if strings.TrimSpace(text) == "" {
+	if trim {
+		text = strings.TrimSpace(text)
+	}
+	if store.IsBlankClip(text) {
 		return "", ErrNoText
 	}
 	if len([]byte(text)) > maxBytes {

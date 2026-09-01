@@ -22,9 +22,8 @@ const (
 
 var (
 	aboutProcCallback = windows.NewCallback(aboutProc)
-	aboutClassOnce    sync.Once
+	aboutClassMu      sync.Mutex
 	aboutClassName    *uint16
-	aboutClassErr     error
 	activeAbout       *aboutWindow
 	activeAboutMu     sync.Mutex
 )
@@ -38,28 +37,33 @@ type aboutWindow struct {
 // The class and its background brush live until process exit; unregistering during
 // WM_DESTROY happens before Windows finishes destroying the window and breaks reopening.
 func getAboutClass(instance winapi.HINSTANCE) (*uint16, error) {
-	aboutClassOnce.Do(func() {
-		aboutClassName, aboutClassErr = windows.UTF16PtrFromString(fmt.Sprintf("Stendoclip.About.%d", os.Getpid()))
-		if aboutClassErr != nil {
-			return
-		}
-		brush, err := winapi.CreateSolidBrush(winapi.RGB(255, 255, 255))
-		if err != nil {
-			aboutClassErr = err
-			return
-		}
-		class := winapi.WndClassEx{
-			WndProc:    aboutProcCallback,
-			Instance:   instance,
-			ClassName:  aboutClassName,
-			Background: winapi.HBRUSH(brush),
-		}
-		class.CbSize = uint32(unsafe.Sizeof(class))
-		if _, aboutClassErr = winapi.RegisterClassEx(&class); aboutClassErr != nil {
-			winapi.DeleteObject(winapi.HGDIOBJ(brush))
-		}
-	})
-	return aboutClassName, aboutClassErr
+	aboutClassMu.Lock()
+	defer aboutClassMu.Unlock()
+	if aboutClassName != nil {
+		return aboutClassName, nil
+	}
+
+	className, err := windows.UTF16PtrFromString(fmt.Sprintf("Stendoclip.About.%d", os.Getpid()))
+	if err != nil {
+		return nil, err
+	}
+	brush, err := winapi.CreateSolidBrush(winapi.RGB(255, 255, 255))
+	if err != nil {
+		return nil, err
+	}
+	class := winapi.WndClassEx{
+		WndProc:    aboutProcCallback,
+		Instance:   instance,
+		ClassName:  className,
+		Background: winapi.HBRUSH(brush),
+	}
+	class.CbSize = uint32(unsafe.Sizeof(class))
+	if _, err := winapi.RegisterClassEx(&class); err != nil {
+		winapi.DeleteObject(winapi.HGDIOBJ(brush))
+		return nil, err
+	}
+	aboutClassName = className
+	return aboutClassName, nil
 }
 
 func showAbout(ownerInstance winapi.HINSTANCE, imageData []byte, version string) {

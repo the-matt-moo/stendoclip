@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 31-08-2026
+
+### Fixed
+- Whitespace trimming now applies before the size limit check, so clips that trim under the limit are no longer dropped (Capture)
+- About window class registration retries on failure instead of failing for the session
+- Existing history files are cleaned of blank entries when loaded (documents prior behavior)
+
 ## [1.0.6] - 30-08-2026
 
 ### Added
