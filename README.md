@@ -2,7 +2,7 @@
 
 ![Stendoclip social card](assets/social_card.jpg)
 
-stendoclip is a lightweight Windows 11 clipboard manager inspired by Jumpcut. It captures plain-text clipboard changes and provides a keyboard-driven bezel plus system-tray controls for cycling, pinning, deleting, and pasting clips. Configuration is hot-reloaded — edit `config.json` while running and changes apply instantly.
+stendoclip is a lightweight Windows 11 clipboard manager inspired by Jumpcut. It captures plain-text clipboard changes and provides a keyboard-driven bezel plus system-tray controls for cycling, pinning, deleting, and pasting clips. Configuration is hot-reloaded — edit `config.json` (at `%AppData%\Stendoclip\config.json`) while running and changes apply instantly.
 
 ## Controls
 

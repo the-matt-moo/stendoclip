@@ -22,7 +22,7 @@ import (
 )
 
 // version is overridden from VERSION by the Makefile for release builds.
-var version = "1.0.8"
+var version = "1.0.9"
 
 const openHotkeyID = 1
 
@@ -48,6 +48,8 @@ func buildAboutText(version string, keys config.Keys) string {
 		"Cancel: " + strings.Join(keys.Cancel, " / "),
 		"Delete clip: " + strings.Join(keys.Delete, " / "),
 		"Pin clip: " + strings.Join(keys.Pin, " / "),
+		"",
+		"Config: %AppData%\\Stendoclip\\config.json",
 		"",
 		"Created by Matt Moo",
 		"License: MIT",
